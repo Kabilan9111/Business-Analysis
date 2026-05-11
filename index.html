@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AstralInsight - AI-Powered Analytics</title>
+    <title>AstralInsight - AI-Powered Analytics Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
@@ -13,144 +13,163 @@
                 extend: {
                     fontFamily: { sans: ['Inter', 'sans-serif'] },
                     colors: {
-                        navy: { 900: '#07090F', 800: '#0C101A' }
+                        app_bg: '#06070B',
+                        card_bg_purple: '#0A0A14',
+                        card_bg_green: '#080C0B',
+                        business_brand: '#6432E6',
+                        sports_brand: '#217A3F'
                     }
                 }
             }
         }
     </script>
     <style>
-        body { background-color: #050507; color: #ededed; }
-        /* Reset default styles */
-        .glow-purple { background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, rgba(0,0,0,0) 70%); }
-        .glow-green { background: radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(0,0,0,0) 70%); }
+        body { background-color: #06070B; color: #ededed; }
+        .business-glow { background: radial-gradient(circle at 10% 10%, rgba(100,50,230,0.15) 0%, transparent 60%); }
+        .sports-glow { background: radial-gradient(circle at 10% 10%, rgba(33,122,63,0.15) 0%, transparent 60%); }
     </style>
 </head>
-<body class="antialiased min-h-screen font-sans overflow-x-hidden selection:bg-white/20 flex flex-col bg-[#050507]">
+<body class="antialiased min-h-screen font-sans overflow-x-hidden flex flex-col items-center">
 
     <!-- Navbar -->
-    <nav class="w-full z-50 pt-6">
-        <div class="max-w-[1400px] mx-auto px-6 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <svg class="w-6 h-6 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 21 12 4.5 21.5 21"></path><path d="M12 11 8.5 21"></path></svg>
-                <span class="font-semibold tracking-tight text-lg text-white">AstralInsight</span>
-            </div>
-            <button class="text-sm font-medium text-gray-300 hover:text-white transition-colors border border-white/10 px-4 py-1.5 rounded-lg bg-white/5 backdrop-blur-sm">About Us</button>
+    <nav class="w-full pt-6 pb-4 px-8 max-w-[1600px] mx-auto flex items-center justify-between z-50 relative">
+        <div class="flex items-center gap-3">
+            <svg class="w-7 h-7" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 5L5 35H12L20 18L28 35H35L20 5Z" fill="url(#paint0_linear)"/>
+                <path d="M20 5L15 15H25L20 5Z" fill="url(#paint1_linear)"/>
+                <defs>
+                    <linearGradient id="paint0_linear" x1="20" y1="5" x2="20" y2="35" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#8B5CF6"/>
+                        <stop offset="1" stop-color="#EC4899"/>
+                    </linearGradient>
+                    <linearGradient id="paint1_linear" x1="20" y1="5" x2="20" y2="15" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#C084FC"/>
+                        <stop offset="1" stop-color="#3B82F6"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+            <span class="font-bold tracking-tight text-xl text-white">AstralInsight</span>
         </div>
+        <button class="text-xs font-semibold text-gray-300 hover:text-white transition-colors border border-white/10 px-5 py-2 rounded-lg bg-transparent hover:bg-white/5">About Us</button>
     </nav>
 
     <!-- Hero Section -->
-    <div class="pt-20 pb-12 px-6 relative flex-shrink-0 z-10">
-        <div class="max-w-4xl mx-auto text-center relative z-10">
-            <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-4 text-white">
-                AI-Powered Analytics Platform
-            </h1>
-            <p class="text-base md:text-lg text-gray-400 font-light max-w-lg mx-auto">
-                Transform data into intelligent decisions across businesses and sports.
-            </p>
-        </div>
+    <div class="pt-10 pb-16 px-6 text-center z-10">
+        <h1 class="text-[40px] md:text-[48px] font-bold tracking-tight mb-4 text-white">
+            AI-Powered Analytics Platform
+        </h1>
+        <p class="text-[17px] text-gray-400 font-light max-w-2xl mx-auto tracking-wide">
+            Transform data into intelligent decisions across<br/>businesses and sports.
+        </p>
     </div>
 
-    <!-- Main Split Section -->
-    <div class="max-w-[1400px] mx-auto px-6 pb-24 relative flex-1 flex flex-col justify-start">
+    <!-- Cards Section -->
+    <div class="max-w-[1400px] w-full mx-auto px-6 pb-24 relative flex items-center justify-center">
         
         <!-- OR Divider -->
-        <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 hidden xl:flex flex-col items-center justify-center">
-            <div class="w-10 h-10 rounded-full border border-white/5 bg-[#0C0C12] flex items-center justify-center text-xs font-light text-gray-500 shadow-xl shadow-black/50 backdrop-blur-md">or</div>
+        <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 hidden lg:flex items-center justify-center">
+            <div class="w-[42px] h-[42px] rounded-full border border-white/10 bg-[#0C0D12] flex items-center justify-center text-sm font-medium text-gray-500 shadow-2xl backdrop-blur-md">
+                or
+            </div>
         </div>
 
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-8 relative items-stretch">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full relative z-20">
             
             <!-- Business Analytics Card -->
-            <div class="rounded-[24px] relative overflow-hidden bg-[#0A0A10] border border-white/5 flex flex-col md:flex-row group transition-all hover:border-purple-500/20">
-                <!-- Inner background glow -->
-                <div class="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-transparent to-transparent opacity-50"></div>
+            <div class="rounded-3xl border border-white-[0.03] overflow-hidden bg-card_bg_purple relative flex h-[480px]">
+                <div class="absolute inset-0 business-glow border border-white/5 rounded-3xl pointer-events-none"></div>
                 
-                <div class="p-10 relative z-10 w-full md:w-[55%] flex flex-col">
-                    <!-- Icon -->
-                    <div class="w-14 h-14 rounded-2xl bg-purple-600/20 flex items-center justify-center mb-6 border border-purple-500/20 shadow-[0_0_15px_rgba(139,92,246,0.15)]">
-                        <svg class="w-6 h-6 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                <div class="p-10 relative z-10 w-[55%] flex flex-col h-full bg-gradient-to-r from-card_bg_purple to-transparent">
+                    <div class="flex items-center gap-4 mb-3">
+                        <div class="w-[52px] h-[52px] rounded-2xl bg-business_brand/20 flex flex-col items-center justify-center shadow-[0_0_20px_rgba(100,50,230,0.15)]">
+                           <svg viewBox="0 0 24 24" class="w-6 h-6 text-purple-400" fill="currentColor"><path d="M5 19h14v2H5v-2zm2-8h2v6H7v-6zm4-3h2v9h-2V8zm4-4h2v13h-2V4z"/></svg>
+                        </div>
+                        <div>
+                            <h2 class="text-[22px] font-semibold text-white tracking-tight leading-none mb-1">Business Analytics</h2>
+                            <p class="text-gray-400 text-sm leading-snug w-[200px]">Turn your business data into actionable insights.</p>
+                        </div>
                     </div>
                     
-                    <h2 class="text-2xl font-semibold mb-3 text-white">Business Analytics</h2>
-                    <p class="text-[#9CA3AF] mb-8 text-sm leading-relaxed max-w-[280px]">Turn your business data into actionable insights.</p>
-                    
-                    <ul class="space-y-3.5 text-gray-300 text-sm mb-12 flex-1">
-                        <li class="flex items-center gap-3"><svg class="w-4 h-4 text-purple-400 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Sales & Revenue Insights</li>
-                        <li class="flex items-center gap-3"><svg class="w-4 h-4 text-purple-400 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Customer Analytics</li>
-                        <li class="flex items-center gap-3"><svg class="w-4 h-4 text-purple-400 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Forecasting & Predictions</li>
-                        <li class="flex items-center gap-3"><svg class="w-4 h-4 text-purple-400 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>AI Recommendations</li>
+                    <ul class="space-y-3 mt-8 mb-auto text-[13px] text-gray-300">
+                        <li class="flex items-center gap-3"><svg class="w-4 h-4 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Sales & Revenue Insights</li>
+                        <li class="flex items-center gap-3"><svg class="w-4 h-4 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Customer Analytics</li>
+                        <li class="flex items-center gap-3"><svg class="w-4 h-4 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Forecasting & Predictions</li>
+                        <li class="flex items-center gap-3"><svg class="w-4 h-4 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>AI Recommendations</li>
                     </ul>
 
-                    <button class="w-max px-6 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition shadow-[0_0_15px_rgba(79,70,229,0.3)] flex items-center gap-2">
-                        Explore Business Analytics <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    <button class="w-max mt-6 px-6 py-3 rounded-lg bg-business_brand text-white text-sm font-semibold hover:opacity-90 transition flex items-center gap-2">
+                        Explore Business Analytics <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                     </button>
                 </div>
                 
-                <!-- Right Side - Dashboard Mockup inside Card -->
-                <div class="w-full md:w-[45%] relative min-h-[300px] overflow-hidden rounded-r-[24px]">
-                    <div class="absolute -right-4 lg:-right-8 top-12 w-[120%] h-[120%] rotate-[-5deg] origin-top-right transform scale-110">
-                        <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2000&auto=format&fit=crop" class="w-full h-full object-cover rounded-xl border border-white/10 opacity-70 contrast-125" style="filter: hue-rotate(1.1) brightness(0.8) contrast(1.2);" alt="Dashboard Mockup" />
-                        <div class="absolute inset-0 bg-gradient-to-t from-[#0A0A10] via-transparent to-transparent"></div>
-                        <div class="absolute inset-0 bg-indigo-900/20 mix-blend-color"></div>
+                <div class="absolute right-[-10%] top-[-5%] w-[65%] h-[110%] pointer-events-none">
+                    <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1000&auto=format&fit=crop" class="w-full h-full object-cover opacity-[0.25] mix-blend-luminosity transform scale-125 translate-x-10 translate-y-10" alt="Dashboard pattern">
+                    <div class="absolute inset-0 bg-gradient-to-r from-card_bg_purple via-transparent to-transparent"></div>
+                    <div class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-[110%] aspect-video rounded-l-2xl border border-white/5 bg-[#0D0D14] shadow-2xl p-4 transform perspective-1000 rotate-y-[-15deg] rotate-x-[5deg]">
+                        <div class="flex flex-wrap gap-2 opacity-50">
+                            <!-- Dashboard elements abstraction -->
+                            <div class="w-full h-2 bg-white/10 rounded-sm mb-4"></div>
+                            <div class="w-1/3 h-16 bg-white/5 rounded-md"></div>
+                            <div class="w-[60%] h-16 bg-white/5 rounded-md"></div>
+                            <div class="w-full h-32 bg-business_brand/20 border border-business_brand/30 rounded-md mt-2 flex items-end overflow-hidden relative">
+                               <svg viewBox="0 0 100 50" preserveAspectRatio="none" class="w-full h-full absolute inset-0 text-business_brand"><path d="M0,50 L0,20 L20,30 L40,10 L60,25 L80,5 L100,15 L100,50 Z" fill="currentColor"></path><path d="M0,20 L20,30 L40,10 L60,25 L80,5 L100,15" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.5"></path></svg>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Sports Analytics Card -->
-            <div class="rounded-[24px] relative overflow-hidden bg-[#0A0A10] border border-white/5 flex flex-col md:flex-row group transition-all hover:border-emerald-500/20">
-                <!-- Inner background glow -->
-                <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-transparent opacity-50"></div>
+            <div class="rounded-3xl border border-white-[0.03] overflow-hidden bg-card_bg_green relative flex h-[480px]">
+                <div class="absolute inset-0 sports-glow border border-white/5 rounded-3xl pointer-events-none"></div>
                 
-                <div class="p-10 relative z-10 w-full md:w-[55%] flex flex-col">
-                    <!-- Icon -->
-                    <div class="w-14 h-14 rounded-2xl bg-emerald-600/20 flex items-center justify-center mb-6 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.15)]">
-                        <svg class="w-6 h-6 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>
+                <div class="p-10 relative z-10 w-[55%] flex flex-col h-full bg-gradient-to-r from-[#070c0a] to-transparent">
+                    <div class="flex items-center gap-4 mb-3">
+                        <div class="w-[52px] h-[52px] rounded-2xl bg-sports_brand/20 flex flex-col items-center justify-center shadow-[0_0_20px_rgba(33,122,63,0.15)]">
+                           <svg viewBox="0 0 24 24" class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>
+                        </div>
+                        <div>
+                            <h2 class="text-[22px] font-semibold text-white tracking-tight leading-none mb-1">Sports Analytics</h2>
+                            <p class="text-gray-400 text-sm leading-snug w-[200px]">Deep analytics for teams, players and matches.</p>
+                        </div>
                     </div>
                     
-                    <h2 class="text-2xl font-semibold mb-3 text-white">Sports Analytics</h2>
-                    <p class="text-[#9CA3AF] mb-8 text-sm leading-relaxed max-w-[280px]">Deep analytics for teams, players and matches.</p>
-                    
-                    <ul class="space-y-3.5 text-gray-300 text-sm mb-12 flex-1">
-                        <li class="flex items-center gap-3"><svg class="w-4 h-4 text-emerald-400 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>IPL Match Insights</li>
-                        <li class="flex items-center gap-3"><svg class="w-4 h-4 text-emerald-400 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Player Performance</li>
-                        <li class="flex items-center gap-3"><svg class="w-4 h-4 text-emerald-400 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Win Probability</li>
-                        <li class="flex items-center gap-3"><svg class="w-4 h-4 text-emerald-400 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Fantasy Assistant</li>
+                    <ul class="space-y-3 mt-8 mb-auto text-[13px] text-gray-300">
+                        <li class="flex items-center gap-3"><svg class="w-4 h-4 text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>IPL Match Insights</li>
+                        <li class="flex items-center gap-3"><svg class="w-4 h-4 text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Player Performance</li>
+                        <li class="flex items-center gap-3"><svg class="w-4 h-4 text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Win Probability</li>
+                        <li class="flex items-center gap-3"><svg class="w-4 h-4 text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Fantasy Assistant</li>
                     </ul>
 
-                    <button class="w-max px-6 py-2.5 rounded-lg bg-[#276B3D] text-white text-sm font-medium hover:bg-[#31864c] transition shadow-[0_0_15px_rgba(39,107,61,0.3)] flex items-center gap-2">
-                        Explore Sports Analytics <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    <button class="w-max mt-6 px-6 py-3 rounded-lg bg-sports_brand text-white text-sm font-semibold hover:opacity-90 transition flex items-center gap-2">
+                        Explore Sports Analytics <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                     </button>
+
                 </div>
 
-                <!-- Right Side - Stadium Image inside Card -->
-                <div class="w-full md:w-[45%] relative min-h-[300px] overflow-hidden rounded-[24px]">
-                     <div class="absolute inset-0 right-0 w-[120%] h-full">
-                        <img src="https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?q=80&w=2000&auto=format&fit=crop" class="w-full h-full object-cover opacity-60" alt="Stadium Mockup" style="filter: brightness(0.7) contrast(1.1);"/>
-                        <div class="absolute inset-0 bg-gradient-to-r from-[#0A0A10] to-transparent"></div>
-                        <div class="absolute inset-0 bg-gradient-to-t from-[#0A0A10] via-transparent to-transparent"></div>
-                     </div>
-                     <!-- Small UI widget overlay -->
-                     <div class="absolute right-6 bottom-6 left-6 p-4 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 shadow-2xl">
-                         <div class="text-[10px] text-gray-400 mb-2">CSK vs MI</div>
-                         <div class="text-[9px] text-emerald-400 mb-2">Win Probability</div>
-                         <div class="flex items-center gap-2">
-                             <div class="text-xs font-semibold text-white">CSK</div>
-                             <div class="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                                 <div class="h-full bg-emerald-500 w-[58%]"></div>
-                             </div>
-                             <div class="text-xs font-semibold text-gray-400">MI</div>
-                         </div>
-                         <div class="flex justify-between mt-1 text-[10px]">
-                            <span class="text-white">58%</span>
-                            <span class="text-gray-400">42%</span>
-                         </div>
+                <div class="absolute inset-y-0 right-0 w-[55%] pointer-events-none">
+                     <img src="https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?q=80&w=1200&auto=format&fit=crop" class="absolute inset-0 w-full h-full object-cover object-[70%_top] opacity-90" alt="Stadium">
+                     <div class="absolute inset-0 bg-gradient-to-r from-card_bg_green via-transparent to-transparent"></div>
+                     <div class="absolute inset-0 bg-gradient-to-t from-card_bg_green to-transparent opacity-60"></div>
+                     
+                     <div class="absolute bottom-10 left-10 p-5 rounded-2xl bg-black/60 border border-white/5 shadow-2xl backdrop-blur-md w-[220px]">
+                        <div class="text-[10px] text-gray-300 font-semibold mb-1">CSK vs MI</div>
+                        <div class="text-[9px] text-green-400 font-medium mb-3">Win Probability</div>
+                        <div class="flex items-center justify-between mb-1.5 px-0.5">
+                            <span class="text-xs font-bold text-white">CSK</span>
+                            <span class="text-xs font-bold text-white">MI</span>
+                        </div>
+                        <div class="w-full h-[6px] bg-white/10 rounded-full overflow-hidden flex">
+                            <div class="h-full bg-green-500 w-[58%]"></div>
+                        </div>
+                        <div class="flex justify-between mt-2 px-0.5">
+                            <span class="text-[10px] font-bold text-white">58%</span>
+                            <span class="text-[10px] font-medium text-gray-400">42%</span>
+                        </div>
                      </div>
                 </div>
             </div>
-
         </div>
     </div>
-
 </body>
 </html>
