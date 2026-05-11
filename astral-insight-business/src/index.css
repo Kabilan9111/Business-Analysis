@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@theme {
+  --color-app-bg: #050508;
+  --color-nav-bg: #0A0A10;
+  --color-business-brand: #6432E6;
+}
+
+body {
+  @apply bg-app-bg text-gray-200 antialiased overflow-hidden min-h-screen font-sans;
+}
+
+.dashboard-glow {
+  background: radial-gradient(circle at 50% 0%, rgba(100,50,230,0.05) 0%, transparent 50%);
+}
