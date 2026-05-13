@@ -9,7 +9,12 @@ import {
   FileText, 
   Bot, 
   Lightbulb, 
-  Settings
+  Settings,
+  UploadCloud,
+  AlertTriangle,
+  MessageSquare,
+  Wand2,
+  ShieldAlert
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -52,18 +57,20 @@ const Sidebar = () => {
         <NavItem to="/business/forecasting" icon={LineChart}>Forecasting</NavItem>
         <NavItem to="/business/reports" icon={FileText}>Reports</NavItem>
 
-        <div className="mt-8 mb-2 px-3 text-[10px] uppercase font-semibold text-gray-500 tracking-wider">Intelligence</div>
+        <div className="mt-8 mb-2 px-3 text-[10px] uppercase font-semibold text-gray-500 tracking-wider">Data & Intelligence</div>
+        <NavItem to="/business/upload-data" icon={UploadCloud}>Upload Data</NavItem>
         <NavItem to="/business/ai-assistant" icon={Bot} isPurple>AI Assistant</NavItem>
-        {/* Using a non-route item here just for visual consistency if needed, or route it to insight page */}
-        <div className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 text-[13px] font-medium transition cursor-pointer">
-            <Lightbulb className="w-4 h-4 text-purple-400" />
-            AI Insights
-        </div>
+        <NavItem to="/business/ai-insights" icon={Lightbulb} isPurple>AI Insights</NavItem>
+        <NavItem to="/business/recommendations" icon={Wand2} isPurple>Recommendations</NavItem>
+        <NavItem to="/business/sentiment-analysis" icon={MessageSquare}>Sentiment Analysis</NavItem>
+        <NavItem to="/business/anomaly-detection" icon={AlertTriangle} isPurple>Anomaly Detection</NavItem>
       </div>
       
-      <div className="p-4 border-t border-white/5">
+      <div className="p-4 border-t border-white/5 space-y-1">
+        <div className="text-[10px] uppercase font-semibold text-gray-500 tracking-wider px-3 mb-2">Administration</div>
+        <NavItem to="/business/admin" icon={ShieldAlert}>Admin Panel</NavItem>
         <NavItem to="/business/settings" icon={Settings}>Settings</NavItem>
-        <div className="mt-4 flex items-center gap-3 px-3">
+        <div className="mt-6 flex items-center gap-3 px-3">
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center text-white text-xs font-bold ring-2 ring-white/10 flex-shrink-0">AD</div>
           <div className="flex flex-col truncate">
             <span className="text-xs font-semibold text-white truncate">Admin User</span>

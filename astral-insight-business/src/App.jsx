@@ -8,7 +8,13 @@ import Customers from './pages/Customers';
 import Forecasting from './pages/Forecasting';
 import Reports from './pages/Reports';
 import AIAssistant from './pages/AIAssistant';
+import AIInsights from './pages/AIInsights';
 import Settings from './pages/Settings';
+import UploadData from './pages/UploadData';
+import AnomalyDetection from './pages/AnomalyDetection';
+import SentimentAnalysis from './pages/SentimentAnalysis';
+import Recommendations from './pages/Recommendations';
+import AdminPanel from './pages/AdminPanel';
 
 function App() {
   return (
@@ -23,7 +29,13 @@ function App() {
           <Route path="customers" element={<Customers />} />
           <Route path="forecasting" element={<Forecasting />} />
           <Route path="reports" element={<Reports />} />
+          <Route path="upload-data" element={<UploadData />} />
           <Route path="ai-assistant" element={<AIAssistant />} />
+          <Route path="ai-insights" element={<AIInsights />} />
+          <Route path="recommendations" element={<Recommendations />} />
+          <Route path="sentiment-analysis" element={<SentimentAnalysis />} />
+          <Route path="anomaly-detection" element={<AnomalyDetection />} />
+          <Route path="admin" element={<AdminPanel />} />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>
