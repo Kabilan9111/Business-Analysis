@@ -1,0 +1,247 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// CORE BUSINESS MODELS
+// ============================================================================
+
+model Customer {
+  id                    String     @id @default(cuid())
+  fullName              String
+  email                 String     @unique
+  companyName           String
+  companyRegistration   String?
+  industry              String     // e.g., "FinTech", "E-commerce", "SaaS"
+  region                String     // e.g., "North", "South", "East", "West"
+  city                  String
+  state                 String
+  country               String     @default("India")
+  phone                 String?
+  subscriptionTier      String     @default("pro") // "starter", "pro", "enterprise"
+  customerLifetimeValue Decimal    @default(0) @db.Decimal(15, 2)
+  churnRiskScore        Int        @default(0) // 0-100
+  isActive              Boolean    @default(true)
+  joinedAt              DateTime   @default(now())
+  lastActivityAt        DateTime   @default(now()) @updatedAt
+
+  // Relations
+  orders                Order[]
+  userActivities        UserActivity[]
+  riskAlerts            RiskAlert[]
+
+  @@index([region])
+  @@index([city])
+  @@index([subscriptionTier])
+  @@map("customers")
+}
+
+model Product {
+  id                      String      @id @default(cuid())
+  name                    String
+  category                String      // "SaaS", "API", "Professional Services"
+  description             String?
+  basePrice               Decimal     @db.Decimal(15, 2)
+  monthlyRecurringRevenue Decimal     @db.Decimal(15, 2)
+  annualPrice             Decimal     @db.Decimal(15, 2)
+  conversionRate          Decimal     @default(0) @db.Decimal(5, 2) // 0-100
+  profitMargin            Decimal     @default(0) @db.Decimal(5, 2) // 0-100
+  totalUnitsSold          Int         @default(0)
+  totalRevenueGenerated   Decimal     @default(0) @db.Decimal(15, 2)
+  growthPercentage        Decimal     @default(0) @db.Decimal(5, 2)
+  isActive                Boolean     @default(true)
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
+
+  // Relations
+  orders                  Order[]
+  forecasts               Forecast[]
+  productPerformance      ProductPerformance?
+
+  @@index([category])
+  @@map("products")
+}
+
+model Order {
+  id              String        @id @default(cuid())
+  orderId         String        @unique // "ORD-8821"
+  customerId      String
+  productId       String
+  amount          Decimal       @db.Decimal(15, 2)
+  quantity        Int           @default(1)
+  paymentStatus   String        @default("completed") // "completed", "pending", "failed"
+  refundStatus    String        @default("none") // "none", "partial", "full"
+  refundAmount    Decimal       @default(0) @db.Decimal(15, 2)
+  salesChannel    String        @default("website") // "website", "mobile", "direct_sales", "affiliate", "marketplace"
+  region          String
+  city            String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  customer        Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([productId])
+  @@index([region])
+  @@index([createdAt])
+  @@index([paymentStatus])
+  @@map("orders")
+}
+
+model Forecast {
+  id                String      @id @default(cuid())
+  productId         String
+  forecastDate      DateTime
+  predictedRevenue  Decimal     @db.Decimal(15, 2)
+  lowerBound        Decimal     @db.Decimal(15, 2)
+  upperBound        Decimal     @db.Decimal(15, 2)
+  confidenceScore   Decimal     @default(95) @db.Decimal(5, 2) // 0-100
+  anomalyScore      Decimal     @default(0) @db.Decimal(5, 2) // 0-100
+  trendDirection    String      @default("stable") // "up", "down", "stable"
+  modelVersion      String      @default("1.0")
+  createdAt         DateTime    @default(now())
+
+  // Relations
+  product           Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([forecastDate])
+  @@map("forecasts")
+}
+
+model RevenueInsight {
+  id                String      @id @default(cuid())
+  title             String
+  description       String
+  insightType       String      // "positive", "warning", "info"
+  category          String      // "Revenue", "Conversion", "Growth", "Churn"
+  confidenceScore   Int         @default(80) // 0-100
+  affectedRegion    String?
+  affectedProduct   String?
+  severity          String      @default("medium") // "low", "medium", "high", "critical"
+  generatedAt       DateTime    @default(now())
+  expiresAt         DateTime?
+
+  @@index([generatedAt])
+  @@index([insightType])
+  @@map("revenue_insights")
+}
+
+model RiskAlert {
+  id              String        @id @default(cuid())
+  customerId      String
+  alertTitle      String
+  alertMessage    String
+  severity        String        @default("medium") // "low", "medium", "high", "critical"
+  riskCategory    String        // "Churn", "Payment", "Usage", "Behavior"
+  isResolved      Boolean       @default(false)
+  detectedAt      DateTime      @default(now())
+  resolvedAt      DateTime?
+
+  // Relations
+  customer        Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([severity])
+  @@index([detectedAt])
+  @@map("risk_alerts")
+}
+
+model RegionPerformance {
+  id                String        @id @default(cuid())
+  region            String        @unique
+  totalRevenue      Decimal       @default(0) @db.Decimal(15, 2)
+  totalOrders       Int           @default(0)
+  averageOrderValue Decimal       @default(0) @db.Decimal(15, 2)
+  customerCount     Int           @default(0)
+  growthPercentage  Decimal       @default(0) @db.Decimal(5, 2)
+  marketShare       Decimal       @default(0) @db.Decimal(5, 2) // 0-100
+  conversionRate    Decimal       @default(0) @db.Decimal(5, 2)
+  churnRate         Decimal       @default(0) @db.Decimal(5, 2)
+  lastUpdated       DateTime      @default(now()) @updatedAt
+
+  @@map("region_performance")
+}
+
+model ProductPerformance {
+  id                String        @id @default(cuid())
+  productId         String        @unique
+  totalRevenue      Decimal       @default(0) @db.Decimal(15, 2)
+  totalOrders       Int           @default(0)
+  averageOrderValue Decimal       @default(0) @db.Decimal(15, 2)
+  unitsSold         Int           @default(0)
+  conversionRate    Decimal       @default(0) @db.Decimal(5, 2)
+  growthPercentage  Decimal       @default(0) @db.Decimal(5, 2)
+  refundRate        Decimal       @default(0) @db.Decimal(5, 2)
+  customerCount     Int           @default(0)
+  repeatCustomers   Int           @default(0)
+  lastUpdated       DateTime      @default(now()) @updatedAt
+
+  // Relations
+  product           Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_performance")
+}
+
+model UserActivity {
+  id            String        @id @default(cuid())
+  customerId    String
+  activityType  String        // "login", "order", "support_ticket", "feature_usage"
+  metadata      String?       // JSON stringified metadata
+  ipAddress     String?
+  userAgent     String?
+  timestamp     DateTime      @default(now())
+
+  // Relations
+  customer      Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([timestamp])
+  @@map("user_activities")
+}
+
+// ============================================================================
+// AGGREGATION & ANALYTICS MODELS
+// ============================================================================
+
+model DailyMetric {
+  id                String        @id @default(cuid())
+  date              DateTime      @unique
+  totalRevenue      Decimal       @default(0) @db.Decimal(15, 2)
+  totalOrders       Int           @default(0)
+  newCustomers      Int           @default(0)
+  churnedCustomers  Int           @default(0)
+  averageOrderValue Decimal       @default(0) @db.Decimal(15, 2)
+  conversionRate    Decimal       @default(0) @db.Decimal(5, 2)
+  refundRate        Decimal       @default(0) @db.Decimal(5, 2)
+  createdAt         DateTime      @default(now())
+
+  @@map("daily_metrics")
+}
+
+model MonthlyMetric {
+  id                String        @id @default(cuid())
+  year              Int
+  month             Int
+  totalRevenue      Decimal       @default(0) @db.Decimal(15, 2)
+  totalOrders       Int           @default(0)
+  newCustomers      Int           @default(0)
+  repeatOrders      Int           @default(0)
+  averageOrderValue Decimal       @default(0) @db.Decimal(15, 2)
+  conversionRate    Decimal       @default(0) @db.Decimal(5, 2)
+  retentionRate     Decimal       @default(0) @db.Decimal(5, 2)
+  createdAt         DateTime      @default(now())
+
+  @@unique([year, month])
+  @@map("monthly_metrics")
+}
