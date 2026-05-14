@@ -1,36 +1,89 @@
-import express, { Express, Request, Response } from 'express';
+import 'dotenv/config';
+import http from 'http';
+import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
-import analyticsRoutes from './api/routes';
-import { prisma } from './config/prisma';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 
-dotenv.config();
+// Config & Services
+import { initRedisClient, closeRedis } from './config/redis';
+import { logger } from './utils/logger';
+import { prisma } from './config/prisma';
+import { initRealtimeGateway } from './sockets/realtime.gateway';
+
+// Middleware
+import { errorHandler, asyncHandler } from './middleware/errorHandler';
+import { validateRequest } from './middleware/validation';
+
+// Routes
+import apiRoutes from './api/routes';
+
+// ============================================================================
+// APP SETUP
+// ============================================================================
 
 const app: Express = express();
 const port = process.env.PORT || 3001;
 
-// ============================================================================
-// MIDDLEWARE
-// ============================================================================
-
-app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'],
-  credentials: true
-}));
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Create HTTP server for Socket.io
+const httpServer = http.createServer(app);
 
 // ============================================================================
-// LOGGING MIDDLEWARE
+// SECURITY MIDDLEWARE
 // ============================================================================
 
-app.use((req: Request, res: Response, next) => {
+app.use(helmet());
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
+  message: 'Too many requests, please try again later.',
+});
+
+app.use('/api/', limiter);
+
+// CORS
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:5174',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
+
+// ============================================================================
+// BODY PARSER MIDDLEWARE
+// ============================================================================
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// ============================================================================
+// REQUEST LOGGING MIDDLEWARE
+// ============================================================================
+
+app.use((req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
+
   res.on('finish', () => {
     const duration = Date.now() - start;
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`);
+    const logData = {
+      method: req.method,
+      path: req.path,
+      status: res.statusCode,
+      duration: `${duration}ms`,
+      ip: req.ip,
+    };
+
+    if (res.statusCode >= 400) {
+      logger.warn(logData);
+    } else {
+      logger.debug(logData);
+    }
   });
+
   next();
 });
 
@@ -38,7 +91,7 @@ app.use((req: Request, res: Response, next) => {
 // ROUTES
 // ============================================================================
 
-app.use('/api', analyticsRoutes);
+app.use('/api', apiRoutes);
 
 // ============================================================================
 // ROOT ENDPOINT
@@ -47,36 +100,18 @@ app.use('/api', analyticsRoutes);
 app.get('/', (req: Request, res: Response) => {
   res.json({
     status: 'success',
-    message: 'AstralInsight BA - Enterprise Analytics Platform API',
-    version: '1.0.0',
-    endpoints: {
-      health: '/api/health',
-      kpis: '/api/kpis',
-      revenue_trend: '/api/revenue-trend',
-      top_products: '/api/top-products',
-      customers: '/api/customers',
-      orders: '/api/orders',
-      forecast: '/api/forecast',
-      regions: '/api/regions',
-      risk_alerts: '/api/risk-alerts',
-      ai_insights: '/api/ai-insights',
-      channels: '/api/channels',
-      customer_segmentation: '/api/customer-segmentation'
-    }
+    message: 'AstralInsight BA - Premium Enterprise Analytics Platform',
+    version: '2.0.0',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString(),
   });
 });
 
 // ============================================================================
-// ERROR HANDLING
+// ERROR HANDLING MIDDLEWARE
 // ============================================================================
 
-app.use((err: any, req: Request, res: Response, next: any) => {
-  console.error('Error:', err);
-  res.status(err.status || 500).json({
-    status: 'error',
-    message: err.message || 'Internal Server Error'
-  });
-});
+app.use(errorHandler);
 
 // ============================================================================
 // 404 HANDLER
@@ -85,58 +120,121 @@ app.use((err: any, req: Request, res: Response, next: any) => {
 app.use((req: Request, res: Response) => {
   res.status(404).json({
     status: 'error',
-    message: 'Endpoint not found'
+    code: 'NOT_FOUND',
+    message: 'Endpoint not found',
   });
 });
 
 // ============================================================================
-// SERVER START
+// SERVER STARTUP
 // ============================================================================
 
 async function startServer() {
   try {
+    logger.info('Starting AstralInsight BA Server...');
+
+    // Initialize Redis
+    await initRedisClient();
+    logger.info('✅ Redis connected');
+
     // Test database connection
     await prisma.$queryRaw`SELECT 1`;
-    console.log('✅ Database connected successfully');
+    logger.info('✅ Database connected');
 
-    app.listen(port, () => {
+    // Initialize real-time gateway (Socket.io)
+    const realtimeGateway = initRealtimeGateway(httpServer);
+    logger.info('✅ Real-time gateway initialized');
+
+    // Start HTTP server
+    httpServer.listen(port, () => {
+      logger.info(`✅ Server running on port ${port}`);
+
       console.log(`
-╔════════════════════════════════════════════════════════════╗
-║         AstralInsight BA - Analytics API Server           ║
-╚════════════════════════════════════════════════════════════╝
+╔════════════════════════════════════════════════════════════════╗
+║     AstralInsight BA - Enterprise Analytics Platform         ║
+║                 Premium Intelligence Engine                   ║
+╚════════════════════════════════════════════════════════════════╝
 
-🚀 Server running on http://localhost:${port}
+🚀 Server Status: RUNNING
+📊 API Port: ${port}
+🔗 API URL: http://localhost:${port}/api
+💬 WebSocket: ws://localhost:${port}
 
-📊 Available Endpoints:
-   • GET /api/kpis
-   • GET /api/revenue-trend
-   • GET /api/top-products
-   • GET /api/customers
-   • GET /api/orders
-   • GET /api/forecast
-   • GET /api/regions
-   • GET /api/risk-alerts
-   • GET /api/ai-insights
-   • GET /api/channels
-   • GET /api/customer-segmentation
+📋 Major Feature Modules:
+   ✓ Sales Dashboard Analytics
+   ✓ AI-Powered Forecasting
+   ✓ Real-Time Alerting System
+   ✓ Shopify Integration
+   ✓ Stripe Payment Analytics
+   ✓ Google Analytics Integration
+   ✓ AI Copilot Intelligence
+   ✓ Advanced Anomaly Detection
+   ✓ Churn Prediction Engine
+   ✓ Inventory Forecasting
 
-🔗 Root: http://localhost:${port}/
+🔐 Security Features:
+   ✓ JWT Authentication
+   ✓ Role-Based Access Control
+   ✓ Rate Limiting
+   ✓ Helmet Security Headers
+   ✓ CORS Protection
+
+💾 Data Layer:
+   ✓ PostgreSQL (27 models)
+   ✓ Redis Caching
+   ✓ Prisma ORM
+   ✓ Decimal.js Financial Precision
+
+🎯 API Documentation:
+   GET  /api/health                    - Health check
+   GET  /api/sales/dashboard           - Sales metrics
+   POST /api/forecast/revenue          - Revenue forecasting
+   GET  /api/alerts/active             - Active alerts
+   GET  /api/shopify/orders            - Shopify orders
+   GET  /api/stripe/revenue            - Stripe revenue
+   GET  /api/ga/traffic                - Google Analytics
+   POST /api/copilot/chat              - AI Copilot
 
 `);
     });
+
+    // Handle graceful shutdown
+    const shutdown = async () => {
+      logger.info('🛑 Initiating graceful shutdown...');
+
+      // Stop alert polling
+      realtimeGateway.stopAlertPolling();
+
+      // Close Socket.io connections
+      realtimeGateway.getIO().close();
+
+      // Close HTTP server
+      httpServer.close(async () => {
+        await closeRedis();
+        await prisma.$disconnect();
+        logger.info('✅ Server shutdown complete');
+        process.exit(0);
+      });
+
+      // Force shutdown after 10 seconds
+      setTimeout(() => {
+        logger.error('⚠️  Forcing shutdown after timeout');
+        process.exit(1);
+      }, 10000);
+    };
+
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
   } catch (error) {
-    console.error('❌ Failed to start server:', error);
+    logger.error({ error }, '❌ Failed to start server');
     process.exit(1);
   }
 }
 
-// Handle graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('\n\n🛑 Shutting down gracefully...');
-  await prisma.$disconnect();
-  process.exit(0);
-});
+// ============================================================================
+// START SERVER
+// ============================================================================
 
 startServer();
 
-export default app;
+export { app, httpServer };

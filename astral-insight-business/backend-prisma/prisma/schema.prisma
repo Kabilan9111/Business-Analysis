@@ -245,3 +245,248 @@ model MonthlyMetric {
   @@unique([year, month])
   @@map("monthly_metrics")
 }
+
+// ============================================================================
+// AUTHENTICATION & USER MODELS
+// ============================================================================
+
+model User {
+  id                String        @id @default(cuid())
+  email             String        @unique
+  passwordHash      String?
+  firstName         String?
+  lastName          String?
+  role              String        @default("user") // "admin", "analyst", "viewer", "user"
+  isActive          Boolean       @default(true)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  lastLoginAt       DateTime?
+
+  @@index([email])
+  @@map("users")
+}
+
+// ============================================================================
+// FORECASTING MODELS - ADVANCED
+// ============================================================================
+
+model ForecastModel {
+  id                String        @id @default(cuid())
+  name              String        // "LSTM", "Prophet", "XGBoost", "ARIMA"
+  modelType         String
+  version           String        @default("1.0")
+  accuracy          Decimal       @db.Decimal(5, 2)
+  mape              Decimal       @db.Decimal(5, 2) // Mean Absolute Percentage Error
+  rmse              Decimal       @db.Decimal(15, 2) // Root Mean Square Error
+  mae               Decimal       @db.Decimal(15, 2) // Mean Absolute Error
+  isActive          Boolean       @default(true)
+  deployedAt        DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([modelType])
+  @@map("forecast_models")
+}
+
+model ForecastAccuracy {
+  id                String        @id @default(cuid())
+  forecastId        String
+  actualRevenue     Decimal       @db.Decimal(15, 2)
+  predictedRevenue  Decimal       @db.Decimal(15, 2)
+  absoluteError     Decimal       @db.Decimal(15, 2)
+  percentageError   Decimal       @db.Decimal(5, 2)
+  evaluatedAt       DateTime      @default(now())
+
+  @@index([forecastId])
+  @@map("forecast_accuracy")
+}
+
+model Anomaly {
+  id                String        @id @default(cuid())
+  type              String        // "revenue_spike", "revenue_drop", "unusual_pattern", "fraud_flag"
+  severity          String        @default("medium") // "low", "medium", "high", "critical"
+  description       String
+  anomalyScore      Decimal       @db.Decimal(5, 2) // 0-100
+  detectedAt        DateTime      @default(now())
+  isInvestigated    Boolean       @default(false)
+
+  @@index([type])
+  @@index([severity])
+  @@index([detectedAt])
+  @@map("anomalies")
+}
+
+model CustomerPrediction {
+  id                String        @id @default(cuid())
+  customerId        String
+  churnRisk         Decimal       @db.Decimal(5, 2) // 0-100
+  ltv_predicted     Decimal       @db.Decimal(15, 2)
+  repurchaseProbability Decimal   @db.Decimal(5, 2) // 0-100
+  daysUntilChurn    Int?
+  segmentPredicted  String? // e.g., "high_value", "at_risk", "dormant"
+  generatedAt       DateTime      @default(now())
+
+  @@index([customerId])
+  @@index([churnRisk])
+  @@map("customer_predictions")
+}
+
+// ============================================================================
+// TRANSACTION & PAYMENT MODELS
+// ============================================================================
+
+model Transaction {
+  id                String        @id @default(cuid())
+  externalId        String        @unique // Stripe/Shopify transaction ID
+  amount            Decimal       @db.Decimal(15, 2)
+  currency          String        @default("USD")
+  status            String        @default("completed") // "pending", "completed", "failed", "refunded"
+  paymentMethod     String? // "card", "bank_transfer", "crypto"
+  refundedAt        DateTime?
+  refundedAmount    Decimal       @db.Decimal(15, 2) @default(0)
+  source            String        // "stripe", "shopify", "manual"
+  metadata          String? // JSON
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([externalId])
+  @@index([status])
+  @@index([source])
+  @@index([createdAt])
+  @@map("transactions")
+}
+
+model Subscription {
+  id                String        @id @default(cuid())
+  externalId        String        @unique // Stripe subscription ID
+  customerId        String
+  planName          String
+  amount            Decimal       @db.Decimal(15, 2)
+  billingCycle      String        @default("monthly") // "monthly", "yearly"
+  status            String        @default("active") // "active", "trialing", "past_due", "canceled"
+  currentPeriodStart DateTime
+  currentPeriodEnd  DateTime
+  canceledAt        DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([externalId])
+  @@index([status])
+  @@map("subscriptions")
+}
+
+// ============================================================================
+// INTEGRATION SYNC MODELS
+// ============================================================================
+
+model ShopifySyncLog {
+  id                String        @id @default(cuid())
+  syncType          String        // "orders", "products", "customers", "inventory"
+  status            String        @default("pending") // "pending", "success", "failed", "partial"
+  recordsProcessed  Int           @default(0)
+  errorMessage      String?
+  startedAt         DateTime      @default(now())
+  completedAt       DateTime?
+
+  @@index([syncType])
+  @@index([status])
+  @@map("shopify_sync_logs")
+}
+
+model StripeSyncLog {
+  id                String        @id @default(cuid())
+  syncType          String        // "charges", "subscriptions", "customers", "invoices"
+  status            String        @default("pending")
+  recordsProcessed  Int           @default(0)
+  errorMessage      String?
+  startedAt         DateTime      @default(now())
+  completedAt       DateTime?
+
+  @@index([syncType])
+  @@index([status])
+  @@map("stripe_sync_logs")
+}
+
+model GASyncLog {
+  id                String        @id @default(cuid())
+  syncType          String        // "traffic", "conversions", "users", "events"
+  status            String        @default("pending")
+  recordsProcessed  Int           @default(0)
+  errorMessage      String?
+  startedAt         DateTime      @default(now())
+  completedAt       DateTime?
+
+  @@index([syncType])
+  @@index([status])
+  @@map("ga_sync_logs")
+}
+
+// ============================================================================
+// ALERT HISTORY & RECOMMENDATIONS
+// ============================================================================
+
+model AlertHistory {
+  id                String        @id @default(cuid())
+  alertTitle        String
+  alertMessage      String
+  severity          String        // "low", "medium", "high", "critical"
+  category          String        // "revenue", "inventory", "conversion", "fraud"
+  status            String        @default("active") // "active", "dismissed", "resolved"
+  aiRecommendation  String?
+  dismissedAt       DateTime?
+  resolvedAt        DateTime?
+  createdAt         DateTime      @default(now())
+
+  @@index([severity])
+  @@index([status])
+  @@index([createdAt])
+  @@map("alert_history")
+}
+
+model AIRecommendation {
+  id                String        @id @default(cuid())
+  title             String
+  description       String
+  category          String        // "revenue", "inventory", "marketing", "retention"
+  expectedImpact    String        // e.g., "+12.5k/mo", "save $45k LTV"
+  confidenceScore   Int           @default(0) // 0-100
+  actionRequired    String?
+  generatedAt       DateTime      @default(now())
+  implementedAt     DateTime?
+
+  @@index([category])
+  @@index([confidenceScore])
+  @@map("ai_recommendations")
+}
+
+// ============================================================================
+// ANALYTICS & INSIGHTS
+// ============================================================================
+
+model FunnelAnalytics {
+  id                String        @id @default(cuid())
+  stage             String        // "traffic", "view", "cart", "checkout", "purchase"
+  count             Int
+  conversionRate    Decimal       @db.Decimal(5, 2)
+  predictedCount    Int?
+  predictedConversion Decimal     @db.Decimal(5, 2)
+  date              DateTime
+  updatedAt         DateTime      @updatedAt
+
+  @@index([date])
+  @@map("funnel_analytics")
+}
+
+model InventoryForecast {
+  id                String        @id @default(cuid())
+  productId         String
+  currentStock      Int
+  predictedDepletion DateTime?
+  reorderDate       DateTime?
+  stockoutRisk      String        @default("low") // "low", "medium", "high"
+  recommendedAction String?
+  updatedAt         DateTime      @updatedAt
+
+  @@index([productId])
+  @@map("inventory_forecasts")
+}
