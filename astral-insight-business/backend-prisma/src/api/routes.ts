@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { body, query } from 'express-validator';
+import { query, body } from 'express-validator';
 
 // Controllers
 import * as salesController from '../controllers/sales.controller';
@@ -19,100 +19,175 @@ const router = Router();
 // HEALTH CHECKS
 // ============================================================================
 
-router.get('/health', (req: Request, res: Response) => {
-  res.json({
-    status: 'success',
-    message: 'AstralInsight BA API is running',
-    timestamp: new Date().toISOString(),
-  });
+router.get('/health', (_req: Request, res: Response) => {
+  res.json({ status: 'success', message: 'AstralInsight BA API is running', timestamp: new Date().toISOString() });
 });
 
 // ============================================================================
-// SALES DASHBOARD ENDPOINTS
+// SALES ENDPOINTS — Full Suite
 // ============================================================================
 
-router.get('/sales/dashboard', authMiddleware, salesController.getDashboard);
+// Dashboard — full metrics bundle
+router.get('/sales/dashboard',
+  query('days').optional().isInt({ min: 1, max: 365 }),
+  validateRequest,
+  salesController.getDashboard
+);
 
-router.get(
-  '/sales/customers',
-  authMiddleware,
-  salesController.getCustomerIntelligence
+// Revenue trend
+router.get('/sales/revenue',
+  query('period').optional().isIn(['daily', 'monthly']),
+  query('days').optional().isInt({ min: 1, max: 365 }),
+  validateRequest,
+  salesController.getRevenue
+);
+
+// Transactions ledger
+router.get('/sales/transactions',
+  query('page').optional().isInt({ min: 1 }),
+  query('limit').optional().isInt({ min: 1, max: 200 }),
+  query('status').optional().isString(),
+  query('region').optional().isString(),
+  validateRequest,
+  salesController.getTransactions
+);
+
+// Customer intelligence
+router.get('/sales/customers', salesController.getCustomerIntelligence);
+
+// Products
+router.get('/sales/products',
+  query('limit').optional().isInt({ min: 1, max: 50 }),
+  validateRequest,
+  salesController.getProducts
+);
+
+// Categories
+router.get('/sales/categories', salesController.getCategories);
+
+// Regions
+router.get('/sales/regions', salesController.getRegions);
+
+// AI Insights
+router.get('/sales/insights',
+  query('days').optional().isInt({ min: 1, max: 365 }),
+  validateRequest,
+  salesController.getInsights
+);
+
+// Sales channels
+router.get('/sales/channels', salesController.getChannels);
+
+// Risk alerts
+router.get('/sales/alerts', salesController.getAlerts);
+
+// Export (no auth guard for demo)
+router.get('/sales/export',
+  query('format').optional().isIn(['json', 'csv']),
+  validateRequest,
+  salesController.exportData
 );
 
 router.get('/sales/health', salesController.health);
 
 // ============================================================================
-// FORECASTING ENDPOINTS
+// FORECASTING ENDPOINTS — Full Suite (all DB-driven)
 // ============================================================================
 
-router.post(
-  '/forecast/revenue',
-  authMiddleware,
+// Revenue forecast (GET — preferred)
+router.get('/forecast/revenue',
+  query('days').optional().isInt({ min: 1, max: 365 }),
+  query('confidence').optional().isInt({ min: 50, max: 99 }),
+  validateRequest,
+  forecastController.getRevenueForecast
+);
+
+// Revenue forecast (POST — legacy compat)
+router.post('/forecast/revenue',
   body('days').optional().isInt({ min: 1, max: 365 }),
-  body('model').optional().isIn(['prophet', 'lstm', 'xgboost', 'arima']),
+  body('model').optional().isString(),
   body('confidenceLevel').optional().isInt({ min: 50, max: 99 }),
   validateRequest,
   forecastController.generateRevenueForcast
 );
 
-router.post(
-  '/forecast/scenario',
-  authMiddleware,
-  body('adSpendChange').isNumeric(),
-  body('conversionBoost').isNumeric(),
-  body('trafficSpike').isNumeric(),
+// Historical data
+router.get('/forecast/historical',
+  query('days').optional().isInt({ min: 7, max: 730 }),
+  validateRequest,
+  forecastController.getHistorical
+);
+
+// Anomaly detection (GET)
+router.get('/forecast/anomalies',
+  query('days').optional().isInt({ min: 7, max: 365 }),
+  validateRequest,
+  forecastController.getAnomalies
+);
+
+// Anomaly detection (POST legacy)
+router.post('/forecast/anomalies',
+  body('timeSeries').optional().isArray(),
+  forecastController.detectAnomalies
+);
+
+// Model list
+router.get('/forecast/models', forecastController.getModels);
+
+// Model comparison (POST legacy)
+router.post('/forecast/compare-models',
+  body('timeSeries').optional().isArray(),
+  forecastController.compareModels
+);
+
+// Scenario simulator
+router.post('/forecast/scenario',
+  body('adSpendChange').optional().isNumeric(),
+  body('conversionBoost').optional().isNumeric(),
+  body('trafficSpike').optional().isNumeric(),
+  body('days').optional().isInt({ min: 1, max: 365 }),
   validateRequest,
   forecastController.generateScenarioForcast
 );
 
-router.post(
-  '/forecast/anomalies',
-  authMiddleware,
-  body('timeSeries').isArray(),
+// Inventory forecasting
+router.get('/forecast/inventory', forecastController.getInventoryForecast);
+
+// AI insights
+router.get('/forecast/insights', forecastController.getForecastInsights);
+
+// Alerts
+router.get('/forecast/alerts', forecastController.getForecastAlerts);
+
+// Funnel forecast
+router.get('/forecast/funnel', forecastController.getFunnelForecast);
+
+// Customer forecast
+router.get('/forecast/customers',
+  query('days').optional().isInt({ min: 1, max: 365 }),
   validateRequest,
-  forecastController.detectAnomalies
+  forecastController.getCustomerForecast
 );
 
-router.post(
-  '/forecast/compare-models',
-  authMiddleware,
-  body('timeSeries').isArray(),
-  validateRequest,
-  forecastController.compareModels
-);
+// Accuracy
+router.post('/forecast/accuracy', forecastController.calculateAccuracy);
+router.get('/forecast/accuracy', forecastController.getAccuracy);
 
-router.post(
-  '/forecast/accuracy',
-  authMiddleware,
-  body('predicted').isArray(),
-  body('actual').isArray(),
-  validateRequest,
-  forecastController.calculateAccuracy
-);
-
-router.post(
-  '/copilot/chat',
-  authMiddleware,
-  body('question').isString(),
+// AI Copilot chat
+router.post('/copilot/chat',
+  body('question').isString().notEmpty(),
   validateRequest,
   forecastController.copilotChat
 );
 
-router.post(
-  '/forecast/explain',
-  authMiddleware,
-  body('forecastData').notEmpty(),
-  body('businessContext').isString(),
-  validateRequest,
+// Legacy endpoints
+router.post('/forecast/explain',
+  body('forecastData').optional(),
+  body('businessContext').optional().isString(),
   forecastController.explainForcast
 );
 
-router.post(
-  '/forecast/recommendations',
-  authMiddleware,
-  forecastController.generateRecommendations
-);
-
+router.post('/forecast/recommendations', forecastController.generateRecommendations);
 router.get('/forecast/health', forecastController.health);
 
 // ============================================================================
@@ -120,204 +195,63 @@ router.get('/forecast/health', forecastController.health);
 // ============================================================================
 
 router.get('/alerts/all', authMiddleware, alertsController.getAllAlerts);
-
 router.get('/alerts/active', authMiddleware, alertsController.getActiveAlerts);
-
-router.get(
-  '/alerts/revenue-drops',
+router.get('/alerts/revenue-drops',
   authMiddleware,
   query('threshold').optional().isInt({ min: 1, max: 100 }),
   validateRequest,
   alertsController.detectRevenueDrops
 );
-
-router.get(
-  '/alerts/inventory',
-  authMiddleware,
-  alertsController.detectInventoryShortages
-);
-
-router.get(
-  '/alerts/conversion-decline',
+router.get('/alerts/inventory', authMiddleware, alertsController.detectInventoryShortages);
+router.get('/alerts/conversion-decline',
   authMiddleware,
   query('threshold').optional().isInt({ min: 1, max: 100 }),
   validateRequest,
   alertsController.detectConversionDecline
 );
-
-router.get(
-  '/alerts/traffic-anomalies',
-  authMiddleware,
-  alertsController.detectTrafficAnomalies
-);
-
-router.get(
-  '/alerts/fraud',
-  authMiddleware,
-  alertsController.detectFraudPatterns
-);
-
-router.get(
-  '/alerts/churn-risk',
+router.get('/alerts/traffic-anomalies', authMiddleware, alertsController.detectTrafficAnomalies);
+router.get('/alerts/fraud', authMiddleware, alertsController.detectFraudPatterns);
+router.get('/alerts/churn-risk',
   authMiddleware,
   query('threshold').optional().isInt({ min: 1, max: 100 }),
   validateRequest,
   alertsController.detectChurnRisk
 );
-
 router.get('/alerts/health', alertsController.health);
 
 // ============================================================================
-// SHOPIFY INTEGRATION ENDPOINTS
+// SHOPIFY INTEGRATION
 // ============================================================================
 
-router.get(
-  '/shopify/orders',
-  authMiddleware,
-  roleBasedAuth('admin', 'analyst'),
-  query('limit').optional().isInt(),
-  validateRequest,
-  shopifyController.getOrders
-);
-
-router.get(
-  '/shopify/products',
-  authMiddleware,
-  roleBasedAuth('admin', 'analyst'),
-  query('limit').optional().isInt(),
-  validateRequest,
-  shopifyController.getProducts
-);
-
-router.get(
-  '/shopify/customers',
-  authMiddleware,
-  roleBasedAuth('admin', 'analyst'),
-  query('limit').optional().isInt(),
-  validateRequest,
-  shopifyController.getCustomers
-);
-
-router.get(
-  '/shopify/inventory',
-  authMiddleware,
-  roleBasedAuth('admin', 'analyst'),
-  shopifyController.getInventory
-);
-
-router.get(
-  '/shopify/revenue',
-  authMiddleware,
-  roleBasedAuth('admin', 'analyst'),
-  query('startDate').optional().isISO8601(),
-  query('endDate').optional().isISO8601(),
-  validateRequest,
-  shopifyController.calculateRevenue
-);
-
-router.get(
-  '/shopify/abandoned-carts',
-  authMiddleware,
-  roleBasedAuth('admin', 'analyst'),
-  shopifyController.getAbandonedCarts
-);
-
+router.get('/shopify/orders', authMiddleware, roleBasedAuth('admin', 'analyst'), query('limit').optional().isInt(), validateRequest, shopifyController.getOrders);
+router.get('/shopify/products', authMiddleware, roleBasedAuth('admin', 'analyst'), query('limit').optional().isInt(), validateRequest, shopifyController.getProducts);
+router.get('/shopify/customers', authMiddleware, roleBasedAuth('admin', 'analyst'), query('limit').optional().isInt(), validateRequest, shopifyController.getCustomers);
+router.get('/shopify/inventory', authMiddleware, roleBasedAuth('admin', 'analyst'), shopifyController.getInventory);
+router.get('/shopify/revenue', authMiddleware, roleBasedAuth('admin', 'analyst'), query('startDate').optional().isISO8601(), query('endDate').optional().isISO8601(), validateRequest, shopifyController.calculateRevenue);
+router.get('/shopify/abandoned-carts', authMiddleware, roleBasedAuth('admin', 'analyst'), shopifyController.getAbandonedCarts);
 router.get('/shopify/health', shopifyController.health);
 
 // ============================================================================
-// STRIPE INTEGRATION ENDPOINTS
+// STRIPE INTEGRATION
 // ============================================================================
 
-router.get(
-  '/stripe/charges',
-  authMiddleware,
-  roleBasedAuth('admin', 'analyst'),
-  query('limit').optional().isInt(),
-  validateRequest,
-  stripeController.getCharges
-);
-
-router.get(
-  '/stripe/subscriptions',
-  authMiddleware,
-  roleBasedAuth('admin', 'analyst'),
-  query('limit').optional().isInt(),
-  query('status').optional().isIn(['active', 'canceled', 'past_due']),
-  validateRequest,
-  stripeController.getSubscriptions
-);
-
-router.get(
-  '/stripe/mrr',
-  authMiddleware,
-  roleBasedAuth('admin', 'analyst'),
-  stripeController.calculateMRR
-);
-
-router.get(
-  '/stripe/revenue',
-  authMiddleware,
-  roleBasedAuth('admin', 'analyst'),
-  stripeController.calculateRevenue
-);
-
-router.get(
-  '/stripe/failed-payments',
-  authMiddleware,
-  roleBasedAuth('admin', 'analyst'),
-  stripeController.getFailedPayments
-);
-
-router.get(
-  '/stripe/churn',
-  authMiddleware,
-  roleBasedAuth('admin', 'analyst'),
-  query('days').optional().isInt({ min: 1, max: 365 }),
-  validateRequest,
-  stripeController.calculateChurn
-);
-
+router.get('/stripe/charges', authMiddleware, roleBasedAuth('admin', 'analyst'), query('limit').optional().isInt(), validateRequest, stripeController.getCharges);
+router.get('/stripe/subscriptions', authMiddleware, roleBasedAuth('admin', 'analyst'), query('limit').optional().isInt(), query('status').optional().isIn(['active', 'canceled', 'past_due']), validateRequest, stripeController.getSubscriptions);
+router.get('/stripe/mrr', authMiddleware, roleBasedAuth('admin', 'analyst'), stripeController.calculateMRR);
+router.get('/stripe/revenue', authMiddleware, roleBasedAuth('admin', 'analyst'), stripeController.calculateRevenue);
+router.get('/stripe/failed-payments', authMiddleware, roleBasedAuth('admin', 'analyst'), stripeController.getFailedPayments);
+router.get('/stripe/churn', authMiddleware, roleBasedAuth('admin', 'analyst'), query('days').optional().isInt({ min: 1, max: 365 }), validateRequest, stripeController.calculateChurn);
 router.get('/stripe/health', stripeController.health);
 
 // ============================================================================
-// GOOGLE ANALYTICS INTEGRATION ENDPOINTS
+// GOOGLE ANALYTICS
 // ============================================================================
 
-router.get(
-  '/ga/traffic',
-  authMiddleware,
-  roleBasedAuth('admin', 'analyst', 'viewer'),
-  gaController.getTraffic
-);
-
-router.get(
-  '/ga/conversions',
-  authMiddleware,
-  roleBasedAuth('admin', 'analyst', 'viewer'),
-  gaController.getConversions
-);
-
-router.get(
-  '/ga/devices',
-  authMiddleware,
-  roleBasedAuth('admin', 'analyst', 'viewer'),
-  gaController.getDeviceAnalytics
-);
-
-router.get(
-  '/ga/regions',
-  authMiddleware,
-  roleBasedAuth('admin', 'analyst', 'viewer'),
-  gaController.getRegionalAnalytics
-);
-
-router.get(
-  '/ga/retention',
-  authMiddleware,
-  roleBasedAuth('admin', 'analyst', 'viewer'),
-  gaController.getUserRetention
-);
-
+router.get('/ga/traffic', authMiddleware, roleBasedAuth('admin', 'analyst', 'viewer'), gaController.getTraffic);
+router.get('/ga/conversions', authMiddleware, roleBasedAuth('admin', 'analyst', 'viewer'), gaController.getConversions);
+router.get('/ga/devices', authMiddleware, roleBasedAuth('admin', 'analyst', 'viewer'), gaController.getDeviceAnalytics);
+router.get('/ga/regions', authMiddleware, roleBasedAuth('admin', 'analyst', 'viewer'), gaController.getRegionalAnalytics);
+router.get('/ga/retention', authMiddleware, roleBasedAuth('admin', 'analyst', 'viewer'), gaController.getUserRetention);
 router.get('/ga/health', gaController.health);
 
 export default router;

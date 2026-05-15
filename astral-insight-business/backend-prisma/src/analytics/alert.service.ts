@@ -196,10 +196,13 @@ export class AlertService {
         if (Number(order.amount) > largeOrderThreshold) {
           const customer = await prisma.customer.findUnique({
             where: { id: order.customerId },
-            select: { createdAt: true, totalPurchases: true },
+            select: { createdAt: true },
+          });
+          const orderCount = await prisma.order.count({
+            where: { customerId: order.customerId, paymentStatus: 'completed' },
           });
 
-          if (customer && customer.totalPurchases < newCustomerThreshold) {
+          if (customer && orderCount < newCustomerThreshold) {
             alerts.push({
               type: 'fraud_pattern',
               severity: 'high',
@@ -235,7 +238,8 @@ export class AlertService {
         select: {
           id: true,
           email: true,
-          name: true,
+          fullName: true,
+          companyName: true,
           churnRiskScore: true,
           lastActivityAt: true,
         },
@@ -246,11 +250,12 @@ export class AlertService {
         type: 'churn_risk',
         severity: customer.churnRiskScore >= 85 ? 'critical' : 'warning',
         title: 'Customer Churn Risk Detected',
-        description: `${customer.name} shows ${customer.churnRiskScore}% churn risk`,
+        description: `${customer.companyName || customer.fullName} shows ${customer.churnRiskScore}% churn risk`,
         value: customer.churnRiskScore,
         metadata: {
           customerId: customer.id,
           email: customer.email,
+          name: customer.companyName || customer.fullName,
           lastActivity: customer.lastActivityAt,
         },
         timestamp: new Date(),
@@ -290,11 +295,12 @@ export class AlertService {
       for (const alert of allAlerts.filter((a) => a.severity === 'critical')) {
         await prisma.alertHistory.create({
           data: {
-            type: alert.type,
+            alertTitle: alert.title,
+            alertMessage: alert.description,
             severity: alert.severity,
-            title: alert.title,
-            description: alert.description,
-            metadata: JSON.stringify(alert.metadata || {}),
+            category: alert.type || 'revenue',
+            status: 'active',
+            aiRecommendation: JSON.stringify(alert.metadata || {}),
           },
         });
       }
@@ -338,7 +344,7 @@ export class AlertService {
 
     const visits = await prisma.userActivity.count({
       where: {
-        createdAt: { gte: startOfDay, lte: endOfDay },
+        timestamp: { gte: startOfDay, lte: endOfDay },
       },
     });
 
