@@ -156,7 +156,7 @@ export default function SalesAnalytics() {
 
         {/* TREND CHART + CATEGORIES */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <PremiumCard className="lg:col-span-2 flex flex-col min-h-[420px]">
+          <PremiumCard className="lg:col-span-2 flex flex-col h-[420px]">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-lg font-bold text-white flex items-center gap-2"><Activity className="w-5 h-5 text-[#6432E6]" />Revenue Trend</h2>
@@ -168,8 +168,8 @@ export default function SalesAnalytics() {
                 ))}
               </div>
             </div>
-            <div className="flex-1 min-h-[300px]">
-              {dashLoading ? <div className="h-full bg-white/[0.02] rounded-xl animate-pulse" /> : (
+            <div className="flex-1 h-[320px] w-full">
+              {dashLoading ? <div className="h-full w-full bg-white/[0.02] rounded-xl animate-pulse" /> : (
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={trends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
@@ -189,11 +189,11 @@ export default function SalesAnalytics() {
             </div>
           </PremiumCard>
 
-          <PremiumCard className="flex flex-col">
+          <PremiumCard className="flex flex-col h-[420px]">
             <h2 className="text-lg font-bold text-white flex items-center gap-2 mb-6">Category Revenue</h2>
-            {dashLoading ? <div className="flex-1 bg-white/[0.02] rounded-xl animate-pulse" /> : (
+            {dashLoading ? <div className="flex-1 w-full bg-white/[0.02] rounded-xl animate-pulse" /> : (
               <>
-                <div className="h-[200px]">
+                <div className="h-[250px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Tooltip contentStyle={{ backgroundColor: '#0A0A12', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '8px' }} itemStyle={{ color: '#fff', fontSize: '12px' }} />

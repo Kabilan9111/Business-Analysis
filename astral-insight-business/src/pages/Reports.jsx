@@ -1,9 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PageHeader from "../components/PageHeader";
 import { motion, AnimatePresence } from "framer-motion";
 import { FileText, Download, Clock, Plus, Filter, Sparkles, PieChart, FileSpreadsheet, LayoutGrid, Eye, Trash2, Send, Calendar, Check, MoreVertical, FileJson } from "lucide-react";
 
-const reportsList = [
+const API_BASE = 'http://localhost:3001/api';
+
+// Fallback mock data in case API fails
+const mockReportsList = [
   { id: "REP-104", name: "Q3 Financial Summary", date: "Oct 12, 2023", type: "Financial", format: "PDF", size: "2.4 MB", status: "Ready", views: 142 },
   { id: "REP-103", name: "Monthly Churn Analysis", date: "Oct 01, 2023", type: "Customer", format: "Excel", size: "1.1 MB", status: "Ready", views: 89 },
   { id: "REP-102", name: "Sales Pipeline Review", date: "Sep 28, 2023", type: "Sales", format: "PDF", size: "3.8 MB", status: "Draft", views: 12 },
@@ -14,6 +17,33 @@ const reportsList = [
 const Reports = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [showAIGen, setShowAIGen] = useState(false);
+  const [reportsList, setReportsList] = useState(mockReportsList);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch reports from API
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        setLoading(true);
+        const typeParam = activeTab !== 'all' ? `?type=${activeTab}` : '';
+        const response = await fetch(`${API_BASE}/reports/list${typeParam}`);
+        const data = await response.json();
+        
+        if (data.data && Array.isArray(data.data)) {
+          setReportsList(data.data);
+        } else {
+          setReportsList(mockReportsList);
+        }
+      } catch (error) {
+        console.error('Failed to fetch reports:', error);
+        setReportsList(mockReportsList);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReports();
+  }, [activeTab]);
 
   return (
     <div className="space-y-6 pb-20 relative">

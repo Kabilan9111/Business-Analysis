@@ -1,6 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import { faker } from '@faker-js/faker';
 
+type PrismaClientType = typeof prisma;
+
 const prisma = new PrismaClient();
 
 // ============================================================================
@@ -216,15 +218,25 @@ function generateIndianCustomers(count: number) {
 
 function generateOrders(customerIds: string[], productIds: string[], count: number) {
   const orders = [];
-  
+  const twoYearsAgo = new Date();
+  twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+  const now = new Date();
+  const totalMs = now.getTime() - twoYearsAgo.getTime();
+
   for (let i = 0; i < count; i++) {
     const customerId = faker.helpers.arrayElement(customerIds);
     const productId = faker.helpers.arrayElement(productIds);
     const quantity = faker.number.int({ min: 1, max: 5 });
-    const amount = faker.number.int({ min: 999, max: 50000 });
-    
+    // Growth curve: later orders are larger on average
+    const progress = i / count; // 0..1
+    const baseAmount = 5000 + Math.floor(progress * 30000);
+    const amount = faker.number.int({ min: baseAmount * 0.4, max: baseAmount * 1.6 });
+    // Spread orders across 2 years with recency bias
+    const dateOffset = Math.floor(Math.pow(Math.random(), 0.7) * totalMs);
+    const createdAt = new Date(twoYearsAgo.getTime() + dateOffset);
+
     orders.push({
-      orderId: `ORD-${String(8800 + i).padStart(4, '0')}`,
+      orderId: `ORD-${String(10000 + i).padStart(5, '0')}`,
       customerId,
       productId,
       amount,
@@ -239,15 +251,74 @@ function generateOrders(customerIds: string[], productIds: string[], count: numb
         { weight: 3, value: 'partial' },
         { weight: 2, value: 'full' }
       ]),
-      refundAmount: faker.number.int({ min: 0, max: amount }),
+      refundAmount: 0,
       salesChannel: faker.helpers.arrayElement(CHANNELS),
       region: faker.helpers.arrayElement(INDIAN_REGIONS),
-      city: faker.helpers.arrayElement(['Bangalore', 'Mumbai', 'Delhi', 'Hyderabad', 'Chennai', 'Pune']),
-      createdAt: faker.date.recent({ days: 90 })
+      city: faker.helpers.arrayElement(['Bangalore', 'Mumbai', 'Delhi', 'Hyderabad', 'Chennai', 'Pune', 'Coimbatore', 'Kochi']),
+      createdAt,
     });
   }
-  
+
   return orders;
+}
+
+async function generateDailyMetrics(prismaClient: PrismaClient) {
+  const days = 730; // 2 years
+  const metrics = [];
+  const base = new Date();
+  base.setDate(base.getDate() - days);
+
+  for (let d = 0; d < days; d++) {
+    const date = new Date(base);
+    date.setDate(date.getDate() + d);
+    date.setHours(0, 0, 0, 0);
+    const progress = d / days;
+    const seasonal = 1 + 0.15 * Math.sin((d / 30) * Math.PI);
+    const trend = 1 + progress * 0.8;
+    const baseRev = 80000 + Math.random() * 40000;
+    const totalRevenue = Math.round(baseRev * trend * seasonal);
+    const totalOrders = Math.round((20 + Math.random() * 30) * trend);
+    metrics.push({
+      date,
+      totalRevenue,
+      totalOrders,
+      newCustomers: Math.round(Math.random() * 5),
+      churnedCustomers: Math.round(Math.random() * 2),
+      averageOrderValue: Math.round(totalRevenue / totalOrders),
+      conversionRate: parseFloat((2 + Math.random() * 5).toFixed(2)),
+      refundRate: parseFloat((0.5 + Math.random() * 2).toFixed(2)),
+    });
+  }
+
+  // Batch insert daily metrics
+  for (let i = 0; i < metrics.length; i += 100) {
+    await prismaClient.dailyMetric.createMany({ data: metrics.slice(i, i + 100), skipDuplicates: true });
+  }
+  return metrics.length;
+}
+
+async function generateMonthlyMetrics(prismaClient: PrismaClient) {
+  const records = [];
+  const now = new Date();
+  for (let m = 23; m >= 0; m--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - m, 1);
+    const progress = (24 - m) / 24;
+    const totalRevenue = Math.round((1500000 + Math.random() * 800000) * (1 + progress * 0.6));
+    const totalOrders = Math.round(800 + Math.random() * 400 * (1 + progress));
+    records.push({
+      year: d.getFullYear(),
+      month: d.getMonth() + 1,
+      totalRevenue,
+      totalOrders,
+      newCustomers: Math.round(10 + Math.random() * 20),
+      repeatOrders: Math.round(totalOrders * 0.45),
+      averageOrderValue: Math.round(totalRevenue / totalOrders),
+      conversionRate: parseFloat((3 + Math.random() * 4).toFixed(2)),
+      retentionRate: parseFloat((65 + Math.random() * 20).toFixed(2)),
+    });
+  }
+  await prismaClient.monthlyMetric.createMany({ data: records, skipDuplicates: true });
+  return records.length;
 }
 
 function generateForecasts(productIds: string[]) {
@@ -455,7 +526,16 @@ async function main() {
     }
     console.log('✅ Product performance computed\n');
     
-    // 10. Generate sample user activities
+    // 10. Daily & monthly metrics (2 years of history)
+    console.log('📅 Generating 2-year daily metrics (730 records)...');
+    const dailyCount = await generateDailyMetrics(prisma);
+    console.log(`✅ Created ${dailyCount} daily metric records\n`);
+
+    console.log('📅 Generating 24-month metrics...');
+    const monthlyCount = await generateMonthlyMetrics(prisma);
+    console.log(`✅ Created ${monthlyCount} monthly metric records\n`);
+
+    // 11. Generate sample user activities
     console.log('🔔 Creating user activity logs...');
     const activities = [];
     for (let i = 0; i < 1000; i++) {

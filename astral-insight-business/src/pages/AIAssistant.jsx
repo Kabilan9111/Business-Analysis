@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PageHeader from "../components/PageHeader";
 import { motion, AnimatePresence } from "framer-motion";
 import { PaperAirplaneIcon, SparklesIcon, ChartBarSquareIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+
+const API_BASE = 'http://localhost:3001/api';
 
 const predefinedQueries = [
   { text: "Why did revenue drop in Q3?", icon: ChartBarSquareIcon },
@@ -18,7 +20,25 @@ const AIAssistant = () => {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
 
-  const handleSend = (text = input) => {
+  // Fetch initial business insights on mount
+  useEffect(() => {
+    const fetchInitialInsights = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/ai/business-insights`);
+        const data = await response.json();
+        if (data.status === 'success' && data.data) {
+          // Store insights for quick access when user asks predefined questions
+          window.aiInsights = data.data;
+        }
+      } catch (error) {
+        console.error('Failed to fetch initial insights:', error);
+      }
+    };
+
+    fetchInitialInsights();
+  }, []);
+
+  const handleSend = async (text = input) => {
     if (!text.trim()) return;
     
     // Add user message
@@ -26,14 +46,37 @@ const AIAssistant = () => {
     setInput("");
     setIsTyping(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      // Call AI query endpoint
+      const response = await fetch(`${API_BASE}/ai/query`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: text })
+      });
+
+      const data = await response.json();
+      
+      if (data.status === 'success' && data.data?.response) {
         setIsTyping(false);
         setMessages(prev => [...prev, { 
-            role: "assistant", 
-            text: "Based on the recent telemetry, the primary driver is a 12% decrease in Mid-Market renewals. I've automatically created a retention cohort view in your Analytics tab so you can isolate these accounts." 
+          role: "assistant", 
+          text: data.data.response
         }]);
-    }, 1500);
+      } else {
+        setIsTyping(false);
+        setMessages(prev => [...prev, { 
+          role: "assistant", 
+          text: "I apologize, but I couldn't process your query at the moment. Please try again with a more specific question about your business metrics." 
+        }]);
+      }
+    } catch (error) {
+      console.error('Error querying AI:', error);
+      setIsTyping(false);
+      setMessages(prev => [...prev, { 
+        role: "assistant", 
+        text: "I encountered an error processing your request. Please check your query and try again." 
+      }]);
+    }
   };
 
   return (

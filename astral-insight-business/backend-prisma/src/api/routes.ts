@@ -8,6 +8,12 @@ import * as alertsController from '../controllers/alerts.controller';
 import * as shopifyController from '../controllers/shopify.controller';
 import * as stripeController from '../controllers/stripe.controller';
 import * as gaController from '../controllers/google-analytics.controller';
+import * as customersController from '../controllers/customers.controller';
+import * as analyticsLiveController from '../controllers/analytics-live.controller';
+import * as forecastingLiveController from '../controllers/forecasting-live.controller';
+import * as reportsLiveController from '../controllers/reports-live.controller';
+import * as aiAssistantController from '../controllers/ai-assistant.controller';
+import * as recommendationsController from '../controllers/recommendations.controller';
 
 // Middleware
 import { authMiddleware, roleBasedAuth } from '../middleware/auth';
@@ -253,5 +259,137 @@ router.get('/ga/devices', authMiddleware, roleBasedAuth('admin', 'analyst', 'vie
 router.get('/ga/regions', authMiddleware, roleBasedAuth('admin', 'analyst', 'viewer'), gaController.getRegionalAnalytics);
 router.get('/ga/retention', authMiddleware, roleBasedAuth('admin', 'analyst', 'viewer'), gaController.getUserRetention);
 router.get('/ga/health', gaController.health);
+
+// ============================================================================
+// CUSTOMERS ENDPOINTS
+// ============================================================================
+
+router.get('/customers',
+  query('page').optional().isInt({ min: 1 }),
+  query('limit').optional().isInt({ min: 1, max: 100 }),
+  query('search').optional().isString(),
+  validateRequest,
+  customersController.getCustomers
+);
+
+router.get('/customers/metrics', customersController.getMetrics);
+
+router.get('/customers/global-health', customersController.getGlobalHealth);
+
+router.get('/customers/ltv-trend',
+  query('months').optional().isInt({ min: 1, max: 12 }),
+  validateRequest,
+  customersController.getLTVTrend
+);
+
+router.get('/customers/recommendations', customersController.getRecommendations);
+
+router.get('/customers/health', customersController.health);
+
+// ============================================================================
+// ANALYTICS LIVE ENDPOINTS (Real-time connected to PostgreSQL + APIs)
+// ============================================================================
+
+router.get('/analytics/kpis', analyticsLiveController.getKPIs);
+
+router.get('/analytics/live-visitors', analyticsLiveController.getLiveVisitors);
+
+router.get('/analytics/funnel', analyticsLiveController.getConversionFunnel);
+
+router.get('/analytics/insights', analyticsLiveController.getInsights);
+
+router.get('/analytics/friction', analyticsLiveController.getUXFriction);
+
+router.get('/analytics/retention-cohorts', analyticsLiveController.getCohorts);
+
+router.get('/analytics/traffic-prediction', analyticsLiveController.getTrafficPrediction);
+
+router.get('/analytics/revenue', analyticsLiveController.getRevenue);
+
+router.get('/analytics/orders', analyticsLiveController.getOrders);
+
+// ============================================================================
+// FORECASTING LIVE ENDPOINTS (Real-time connected to PostgreSQL + APIs)
+// ============================================================================
+
+router.get('/forecasting/revenue-forecast', forecastingLiveController.getRevenueForecast);
+
+router.get('/forecasting/kpis', forecastingLiveController.getKPIs);
+
+router.get('/forecasting/drivers', forecastingLiveController.getForecastDrivers);
+
+router.get('/forecasting/funnel-leakage', forecastingLiveController.getFunnelLeakage);
+
+router.get('/forecasting/alerts', forecastingLiveController.getAlerts);
+
+router.get('/forecasting/recommendations', forecastingLiveController.getRecommendations);
+
+router.get('/forecasting/payment-trends', forecastingLiveController.getPaymentTrends);
+
+router.get('/forecasting/order-trend', forecastingLiveController.getOrderTrend);
+
+router.get('/forecasting/scenario-impact', forecastingLiveController.getScenarioImpact);
+
+// ============================================================================
+// REPORTS LIVE ENDPOINTS (Real-time connected to PostgreSQL + APIs)
+// ============================================================================
+
+router.get('/reports/list', reportsLiveController.getReportsList);
+
+router.get('/reports/revenue', reportsLiveController.getRevenueReport);
+
+router.get('/reports/customers', reportsLiveController.getCustomerReport);
+
+router.get('/reports/subscriptions', reportsLiveController.getSubscriptionReport);
+
+router.get('/reports/traffic', reportsLiveController.getTrafficReport);
+
+router.get('/reports/conversion', reportsLiveController.getConversionReport);
+
+router.get('/reports/refunds', reportsLiveController.getRefundReport);
+
+router.get('/reports/executive-summary', reportsLiveController.getExecutiveSummary);
+
+// ============================================================================
+// AI ASSISTANT ENDPOINTS (Intelligent analysis using PostgreSQL + APIs)
+// ============================================================================
+
+router.post('/ai/query',
+  body('query').notEmpty().trim(),
+  validateRequest,
+  aiAssistantController.generateAIResponse
+);
+
+router.get('/ai/revenue-analysis',
+  query('days').optional().isInt({ min: 1, max: 365 }),
+  validateRequest,
+  aiAssistantController.getRevenueAnalysis
+);
+
+router.get('/ai/churn-analysis', aiAssistantController.getChurnAnalysis);
+
+router.get('/ai/mrr-forecast', aiAssistantController.getMRRForecast);
+
+router.get('/ai/traffic-analysis',
+  query('days').optional().isInt({ min: 1, max: 365 }),
+  validateRequest,
+  aiAssistantController.getTrafficAnalysis
+);
+
+router.get('/ai/conversion-analysis', aiAssistantController.getConversionAnalysis);
+
+router.get('/ai/subscription-metrics', aiAssistantController.getSubscriptionMetrics);
+
+router.get('/ai/business-insights', aiAssistantController.getBusinessInsights);
+
+// ============================================================================
+// RECOMMENDATIONS ENDPOINTS (AI-driven, data-driven recommendations)
+// ============================================================================
+
+router.get('/recommendations', recommendationsController.getRecommendations);
+
+router.get('/recommendations/stats', recommendationsController.getStats);
+
+router.get('/recommendations/health', recommendationsController.health);
 
 export default router;

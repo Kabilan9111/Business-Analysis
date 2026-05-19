@@ -23,7 +23,15 @@ const API_BASE = 'http://localhost:3001/api';
 const COLORS = ['#6432E6', '#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6'];
 const UI_BG = '#0A0A12';
 
-// 1. BASE FORECAST DATA (Prophet output mapping)
+// Model comparison data (static - matches ML Lab component)
+const MODELS = [
+  { name: 'LSTM (Deep Learning)', accuracy: 96.4, latency: '420ms', status: 'Active Champion', color: '#6432E6' },
+  { name: 'Prophet (Meta)', accuracy: 93.8, latency: '120ms', status: 'Shadow Challenger', color: '#10b981' },
+  { name: 'XGBoost', accuracy: 91.2, latency: '85ms', status: 'Offline', color: '#3b82f6' },
+  { name: 'ARIMA', accuracy: 84.5, latency: '45ms', status: 'Offline', color: '#f59e0b' }
+];
+
+// Default empty arrays - will be populated by API
 const generateForecastSeries = (days, baseVal, volatility) => {
   const data = [];
   let currentVal = baseVal;
@@ -52,7 +60,7 @@ const MOCK_SERIES = {
   30: generateForecastSeries(30, 85000, 0.04)
 };
 
-// 4. EXPLAINABILITY DATA (Waterfall impact simulation)
+// 4. EXPLAINABILITY DATA (Waterfall impact simulation - fallback)
 const EXPLAINABILITY_DATA = [
   { name: 'Base', value: 85000, type: 'base' },
   { name: 'Seasonality', value: 12500, type: 'positive' },
@@ -62,15 +70,7 @@ const EXPLAINABILITY_DATA = [
   { name: 'Predicted', value: 107100, type: 'total' }
 ];
 
-// 8. MODEL COMPARISON
-const MODELS = [
-  { name: 'LSTM (Deep Learning)', accuracy: 96.4, latency: '420ms', status: 'Active Champion', color: '#6432E6' },
-  { name: 'Prophet (Meta)', accuracy: 93.8, latency: '120ms', status: 'Shadow Challenger', color: '#10b981' },
-  { name: 'XGBoost', accuracy: 91.2, latency: '85ms', status: 'Offline', color: '#3b82f6' },
-  { name: 'ARIMA', accuracy: 84.5, latency: '45ms', status: 'Offline', color: '#f59e0b' }
-];
-
-// 11. FUNNEL CONVERSION
+// 11. FUNNEL CONVERSION (fallback)
 const FUNNEL_DATA = [
   { name: 'Traffic', current: 154000, predicted: 182000 },
   { name: 'Product View', current: 85000, predicted: 105000 },
@@ -118,6 +118,19 @@ export default function Forecasting() {
   const [loading, setLoading] = useState(false);
   const [forecastPeriod, setForecastPeriod] = useState(30);
   
+  // Real data from API
+  const [forecastData, setForecastData] = useState([]);
+  const [kpis, setKpis] = useState({
+    projectedTotalRevenue: 0,
+    peakForecastDay: 0,
+    forecastAccuracy: 96.4,
+    modelStability: 'Highly Reliable'
+  });
+  const [forecastDrivers, setForecastDrivers] = useState([]);
+  const [funnelData, setFunnelData] = useState([]);
+  const [alerts, setAlerts] = useState([]);
+  const [recommendations, setRecommendations] = useState([]);
+  
   // Scenarios
   const [adSpend, setAdSpend] = useState(0);
   const [conversionBoost, setConversionBoost] = useState(0);
@@ -134,6 +147,54 @@ export default function Forecasting() {
   
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chatMessages]);
 
+  // Fetch all forecasting data
+  useEffect(() => {
+    const fetchForecastingData = async () => {
+      try {
+        setLoading(true);
+        const [
+          forecastRes,
+          kpisRes,
+          driversRes,
+          funnelRes,
+          alertsRes,
+          recsRes
+        ] = await Promise.all([
+          fetch(`${API_BASE}/forecasting/revenue-forecast?days=30`),
+          fetch(`${API_BASE}/forecasting/kpis`),
+          fetch(`${API_BASE}/forecasting/drivers`),
+          fetch(`${API_BASE}/forecasting/funnel-leakage`),
+          fetch(`${API_BASE}/forecasting/alerts`),
+          fetch(`${API_BASE}/forecasting/recommendations`)
+        ]);
+
+        const [forecastResData, kpisData, driversData, funnelResData, alertsData, recsData] = await Promise.all([
+          forecastRes.json(),
+          kpisRes.json(),
+          driversRes.json(),
+          funnelRes.json(),
+          alertsRes.json(),
+          recsRes.json()
+        ]);
+
+        if (forecastResData.data) setForecastData(forecastResData.data);
+        if (kpisData.data) setKpis(kpisData.data);
+        if (driversData.data) setForecastDrivers(driversData.data);
+        if (funnelResData.data) setFunnelData(funnelResData.data);
+        if (alertsData.data) setAlerts(alertsData.data);
+        if (recsData.data) setRecommendations(recsData.data);
+      } catch (error) {
+        console.error('Failed to fetch forecasting data:', error);
+        // Fall back to mock data
+        setForecastData(MOCK_SERIES[30]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchForecastingData();
+  }, []);
+
   const handleChat = (e) => {
     e.preventDefault();
     if (!chatMsg.trim()) return;
@@ -142,15 +203,15 @@ export default function Forecasting() {
     setChatMsg("");
     setTimeout(() => {
       let reply = "Based on our LSTM model, changes to that variable will shift the 30-day revenue expectation by ~4.2% and slightly increase stockout risks in the APAC region.";
-      if (query.toLowerCase().includes("inventory")) reply = "Dead stock is currently costing roughly $18k/month. I recommend discounting the 'Legacy SaaS Sub' to liquidate.";
-      if (query.toLowerCase().includes("traffic")) reply = "A 20% traffic spike without conversion optimization will likely just increase infrastructure costs by $1.2k while only boosting revenue by 3%. Focus on funnel optimization first.";
+      if (query.toLowerCase().includes("inventory")) reply = "Dead stock is currently costing roughly ₹120k/month. I recommend discounting the 'Legacy SaaS Sub' to liquidate.";
+      if (query.toLowerCase().includes("traffic")) reply = "A 20% traffic spike without conversion optimization will likely just increase infrastructure costs by ₹8k while only boosting revenue by 3%. Focus on funnel optimization first.";
       setChatMessages(prev => [...prev, { role: 'ai', text: reply }]);
     }, 1200);
   };
 
   // Scenario Multiplier Application
   const scenarioMultiplier = 1 + (adSpend * 0.005) + (conversionBoost * 0.015) + (trafficSpike * 0.008);
-  const dynamicSeries = MOCK_SERIES[30].map(d => ({
+  const dynamicSeries = (forecastData.length > 0 ? forecastData : MOCK_SERIES[30]).map(d => ({
     ...d,
     predicted: Math.round(d.predicted * scenarioMultiplier),
     bestCase: Math.round(d.upper * scenarioMultiplier * 1.05),
@@ -213,7 +274,7 @@ export default function Forecasting() {
             <div className="flex justify-between items-start mb-4">
               <div>
                 <p className="text-sm text-gray-400 font-medium mb-1">Projected Total Revenue</p>
-                <h3 className="text-3xl font-bold text-white">${(avgPredicted * 30).toLocaleString()}</h3>
+                <h3 className="text-3xl font-bold text-white">₹{(kpis.projectedTotalRevenue || (avgPredicted * 30)).toLocaleString()}</h3>
               </div>
               <div className="p-2.5 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
                 <TrendingUp className="w-5 h-5 text-emerald-400" />
@@ -230,7 +291,7 @@ export default function Forecasting() {
             <div className="flex justify-between items-start mb-4">
               <div>
                 <p className="text-sm text-gray-400 font-medium mb-1">Forecast Accuracy</p>
-                <h3 className="text-3xl font-bold text-white">96.4%</h3>
+                <h3 className="text-3xl font-bold text-white">{kpis.forecastAccuracy}%</h3>
               </div>
               <div className="p-2.5 bg-[#6432E6]/10 rounded-lg border border-[#6432E6]/30">
                 <Target className="w-5 h-5 text-[#a78bfa]" />
@@ -256,7 +317,7 @@ export default function Forecasting() {
             <div className="flex justify-between items-start mb-4">
               <div>
                 <p className="text-sm text-gray-400 font-medium mb-1">Peak Forecast Day</p>
-                <h3 className="text-3xl font-bold text-white">${predictedPeak.toLocaleString()}</h3>
+                <h3 className="text-3xl font-bold text-white">₹{(kpis.peakForecastDay || predictedPeak).toLocaleString()}</h3>
               </div>
               <div className="p-2.5 bg-amber-500/10 rounded-lg border border-amber-500/20">
                 <Zap className="w-5 h-5 text-amber-400" />
@@ -277,7 +338,7 @@ export default function Forecasting() {
                 <Badge variant="success">Optimal</Badge>
               </div>
               <div className="py-2">
-                <h3 className="text-xl font-medium text-emerald-400 pb-1">Highly Reliable</h3>
+                <h3 className="text-xl font-medium text-emerald-400 pb-1">{kpis.modelStability}</h3>
                 <p className="text-xs text-gray-500 leading-relaxed">Model accuracy improved 12% over the last 30 days due to stable purchasing patterns.</p>
               </div>
             </div>
@@ -377,12 +438,12 @@ export default function Forecasting() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                   <XAxis dataKey="date" stroke="#6b7280" fontSize={11} tickMargin={10} minTickGap={30} />
-                  <YAxis stroke="#6b7280" fontSize={11} tickFormatter={v => `$${v/1000}k`} />
+                  <YAxis stroke="#6b7280" fontSize={11} tickFormatter={v => `₹${v/1000}k`} />
                   <RechartsTooltip 
                     contentStyle={{ backgroundColor: '#050508', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}
                     itemStyle={{ color: '#fff', fontSize: '13px' }}
                     labelStyle={{ color: '#9ca3af', marginBottom: '8px', fontSize: '12px' }}
-                    formatter={(val, name) => [`$${val.toLocaleString()}`, name]}
+                    formatter={(val, name) => [`₹${val.toLocaleString()}`, name]}
                   />
                   
                   {/* Bounds */}
@@ -417,13 +478,13 @@ export default function Forecasting() {
             </h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={EXPLAINABILITY_DATA} layout="vertical" margin={{ top: 0, right: 30, left: 10, bottom: 0 }}>
+                <BarChart data={forecastDrivers.length > 0 ? forecastDrivers : EXPLAINABILITY_DATA} layout="vertical" margin={{ top: 0, right: 30, left: 10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={true} vertical={false} />
                   <XAxis type="number" stroke="#6b7280" fontSize={10} tickFormatter={v => `$${v/1000}k`} />
                   <YAxis dataKey="name" type="category" stroke="#d1d5db" fontSize={11} width={80} />
                   <RechartsTooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{ backgroundColor: '#050508', border: 'none' }} />
                   <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                    {EXPLAINABILITY_DATA.map((entry, index) => (
+                    {(forecastDrivers.length > 0 ? forecastDrivers : EXPLAINABILITY_DATA).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={
                         entry.type === 'base' ? '#6b7280' : 
                         entry.type === 'positive' ? '#10b981' : 
@@ -447,7 +508,7 @@ export default function Forecasting() {
             </h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={FUNNEL_DATA} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                <BarChart data={funnelData.length > 0 ? funnelData : FUNNEL_DATA} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                   <XAxis dataKey="name" stroke="#6b7280" fontSize={10} />
                   <YAxis stroke="#6b7280" fontSize={10} tickFormatter={v => `${v/1000}k`} />
@@ -468,27 +529,53 @@ export default function Forecasting() {
                 Critical Intelligence Alerts
               </h3>
               <div className="space-y-3">
-                <div className="flex gap-3 bg-red-500/10 border border-red-500/20 p-3 rounded-xl items-start">
-                  <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5 flex-shrink-0 animate-pulse"></div>
-                  <div>
-                    <h4 className="text-xs font-semibold text-red-200">Imminent Stockout Risk</h4>
-                    <p className="text-[11px] text-red-300/80 mt-1">Enterprise Server License quota depleting in 4 days. Restock recommended.</p>
-                  </div>
-                </div>
-                <div className="flex gap-3 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl items-start">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0"></div>
-                  <div>
-                    <h4 className="text-xs font-semibold text-emerald-200">Abnormal Demand Spike</h4>
-                    <p className="text-[11px] text-emerald-300/80 mt-1">SaaS Subscriptions up 400% in India region since 12:00 UTC.</p>
-                  </div>
-                </div>
-                <div className="flex gap-3 bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl items-start">
-                  <div className="w-2 h-2 rounded-full bg-amber-500 mt-1.5 flex-shrink-0"></div>
-                  <div>
-                    <h4 className="text-xs font-semibold text-amber-200">Conversion Drop Detected</h4>
-                    <p className="text-[11px] text-amber-300/80 mt-1">Checkout abandonment rose 12% in the last hour. Investigating payment gateway latency.</p>
-                  </div>
-                </div>
+                {alerts.length > 0 ? alerts.map((alert, idx) => {
+                  const bgColor = alert.type === 'danger' ? 'bg-red-500/10 border-red-500/20' : 
+                                  alert.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20' : 
+                                  'bg-amber-500/10 border-amber-500/20';
+                  const dotColor = alert.type === 'danger' ? 'bg-red-500 animate-pulse' : 
+                                   alert.type === 'success' ? 'bg-emerald-500' : 
+                                   'bg-amber-500';
+                  const textColor = alert.type === 'danger' ? 'text-red-200' : 
+                                    alert.type === 'success' ? 'text-emerald-200' : 
+                                    'text-amber-200';
+                  const descColor = alert.type === 'danger' ? 'text-red-300/80' : 
+                                    alert.type === 'success' ? 'text-emerald-300/80' : 
+                                    'text-amber-300/80';
+                  return (
+                    <div key={idx} className={`flex gap-3 border p-3 rounded-xl items-start ${bgColor}`}>
+                      <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${dotColor}`}></div>
+                      <div>
+                        <h4 className={`text-xs font-semibold ${textColor}`}>{alert.title}</h4>
+                        <p className={`text-[11px] mt-1 ${descColor}`}>{alert.desc}</p>
+                      </div>
+                    </div>
+                  );
+                }) : (
+                  <>
+                    <div className="flex gap-3 bg-red-500/10 border border-red-500/20 p-3 rounded-xl items-start">
+                      <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5 flex-shrink-0 animate-pulse"></div>
+                      <div>
+                        <h4 className="text-xs font-semibold text-red-200">Imminent Stockout Risk</h4>
+                        <p className="text-[11px] text-red-300/80 mt-1">Enterprise Server License quota depleting in 4 days. Restock recommended.</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-3 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl items-start">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0"></div>
+                      <div>
+                        <h4 className="text-xs font-semibold text-emerald-200">Abnormal Demand Spike</h4>
+                        <p className="text-[11px] text-emerald-300/80 mt-1">SaaS Subscriptions up 400% in India region since 12:00 UTC.</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-3 bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl items-start">
+                      <div className="w-2 h-2 rounded-full bg-amber-500 mt-1.5 flex-shrink-0"></div>
+                      <div>
+                        <h4 className="text-xs font-semibold text-amber-200">Conversion Drop Detected</h4>
+                        <p className="text-[11px] text-amber-300/80 mt-1">Checkout abandonment rose 12% in the last hour. Investigating payment gateway latency.</p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </PremiumCard>
           </div>
@@ -534,11 +621,7 @@ export default function Forecasting() {
               </h3>
               
               <div className="space-y-4 flex-1">
-                {[
-                  { title: "Optimize Pricing Strategy", desc: "Increase Tier 1 SaaS pricing by 5%. Historical elasticity models predict a +8% net MRR gain with negligible churn impact.", impact: "+$12.5k / mo", type: "Revenue" },
-                  { title: "Targeted Churn Intervention", desc: "42 Enterprise accounts show early decay signals. Dispatch automated 15% discount SLA renewals immediately.", impact: "Save $45k LTV", type: "Retention" },
-                  { title: "Shift Ad Spend to APAC", desc: "CAC in APAC is currently 40% lower than NA with equal LTV. Reallocating $10k ad budget will yield highest ROI.", impact: "+24% ROI", type: "Marketing" }
-                ].map((rec, i) => (
+                {recommendations.length > 0 ? recommendations.map((rec, i) => (
                   <div key={i} className="relative overflow-hidden p-5 bg-gradient-to-br from-white/5 to-transparent border border-white/10 rounded-xl group hover:border-[#6432E6]/50 transition-colors cursor-pointer">
                     <div className="flex justify-between items-start mb-2">
                       <h4 className="text-sm font-bold text-white group-hover:text-[#a78bfa] transition-colors">{rec.title}</h4>
@@ -547,7 +630,34 @@ export default function Forecasting() {
                     <p className="text-xs text-gray-400 leading-relaxed pr-8">{rec.desc}</p>
                     <ArrowRight className="absolute bottom-4 right-4 w-4 h-4 text-gray-600 group-hover:text-[#a78bfa] transition-all transform group-hover:translate-x-1" />
                   </div>
-                ))}
+                )) : (
+                  <>
+                    <div className="relative overflow-hidden p-5 bg-gradient-to-br from-white/5 to-transparent border border-white/10 rounded-xl group hover:border-[#6432E6]/50 transition-colors cursor-pointer">
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="text-sm font-bold text-white group-hover:text-[#a78bfa] transition-colors">Optimize Pricing Strategy</h4>
+                        <Badge variant="purple">+₹83,500 / mo</Badge>
+                      </div>
+                      <p className="text-xs text-gray-400 leading-relaxed pr-8">Increase Tier 1 SaaS pricing by 5%. Historical elasticity models predict a +8% net MRR gain with negligible churn impact.</p>
+                      <ArrowRight className="absolute bottom-4 right-4 w-4 h-4 text-gray-600 group-hover:text-[#a78bfa] transition-all transform group-hover:translate-x-1" />
+                    </div>
+                    <div className="relative overflow-hidden p-5 bg-gradient-to-br from-white/5 to-transparent border border-white/10 rounded-xl group hover:border-[#6432E6]/50 transition-colors cursor-pointer">
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="text-sm font-bold text-white group-hover:text-[#a78bfa] transition-colors">Targeted Churn Intervention</h4>
+                        <Badge variant="purple">Save ₹300k LTV</Badge>
+                      </div>
+                      <p className="text-xs text-gray-400 leading-relaxed pr-8">Enterprise accounts showing early decay signals. Dispatch automated 15% discount SLA renewals to at-risk segments.</p>
+                      <ArrowRight className="absolute bottom-4 right-4 w-4 h-4 text-gray-600 group-hover:text-[#a78bfa] transition-all transform group-hover:translate-x-1" />
+                    </div>
+                    <div className="relative overflow-hidden p-5 bg-gradient-to-br from-white/5 to-transparent border border-white/10 rounded-xl group hover:border-[#6432E6]/50 transition-colors cursor-pointer">
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="text-sm font-bold text-white group-hover:text-[#a78bfa] transition-colors">Shift Ad Spend to APAC</h4>
+                        <Badge variant="purple">+24% ROI</Badge>
+                      </div>
+                      <p className="text-xs text-gray-400 leading-relaxed pr-8">CAC in APAC is 40% lower than NA with equal LTV. Reallocating ₹83,500 ad budget yields highest ROI.</p>
+                      <ArrowRight className="absolute bottom-4 right-4 w-4 h-4 text-gray-600 group-hover:text-[#a78bfa] transition-all transform group-hover:translate-x-1" />
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </PremiumCard>

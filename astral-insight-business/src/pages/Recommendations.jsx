@@ -1,53 +1,51 @@
-import React from 'react';
-import { Sparkles, TrendingUp, AlertTriangle, Lightbulb, Users, DollarSign, Activity, Download, ChevronDown, ArrowRight, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Sparkles, TrendingUp, AlertTriangle, Lightbulb, Users, IndianRupee, Activity, Download, ChevronDown, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
-
-const data1 = [{ v: 20 }, { v: 40 }, { v: 30 }, { v: 70 }, { v: 60 }, { v: 90 }, { v: 100 }];
-const data2 = [{ v: 100 }, { v: 80 }, { v: 60 }, { v: 40 }, { v: 30 }, { v: 20 }, { v: 10 }];
-const data3 = [{ v: 50 }, { v: 40 }, { v: 60 }, { v: 80 }, { v: 70 }, { v: 90 }, { v: 85 }];
+import { recommendationsAPI, useAPI } from '../services/api';
 
 const Recommendations = () => {
-  const recommendations = [
-    {
-      id: 1,
-      priority: 'Critical',
-      title: 'Reduce churn in high-risk enterprise segment',
-      description: 'AI model detects a 24% probability of churn in your top enterprise accounts over the next 30 days due to declining platform engagement. Re-engage immediately.',
-      impact: 'High',
-      confidence: '94%',
-      effort: 'Medium',
-      category: 'Customer Retention',
-      uplift: '+12% ARPU',
-      chartData: data2,
-      chartColor: '#ef4444' // red
-    },
-    {
-      id: 2,
-      priority: 'High',
-      title: 'Optimize Q3 Marketing Spend',
-      description: 'Reallocating 15% of your ad spend from LinkedIn to LinkedIn Video Ads could reduce CAC by $45 based on competitor benchmark data and historical trends.',
-      impact: 'High',
-      confidence: '88%',
-      effort: 'Low',
-      category: 'Cost Optimization',
-      uplift: '-$45 CAC',
-      chartData: data1,
-      chartColor: '#6432E6' // purple
-    },
-    {
-      id: 3,
-      priority: 'Medium',
-      title: 'Introduce Upsell Flow for Mid-Market',
-      description: 'Mid-Market users are adopting feature X significantly faster than other segments. Triggering an automated upsell workflow could generate secondary revenue.',
-      impact: 'Medium',
-      confidence: '76%',
-      effort: 'High',
-      category: 'Revenue Growth',
-      uplift: '+$14k MRR',
-      chartData: data3,
-      chartColor: '#10b981' // emerald
-    }
-  ];
+  const [recommendations, setRecommendations] = useState([]);
+  const [stats, setStats] = useState({
+    totalRecommendations: 24,
+    potentialImpact: '₹1.18Cr',
+    avgConfidence: 88,
+    implemented: 45,
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch recommendations and stats on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [recsResponse, statsResponse] = await Promise.all([
+          recommendationsAPI.getRecommendations(),
+          recommendationsAPI.getStats(),
+        ]);
+
+        const recs = recsResponse.data || [];
+        const statsData = statsResponse.data || stats;
+
+        setRecommendations(recs);
+        setStats({
+          totalRecommendations: statsData.totalRecommendations || recs.length,
+          potentialImpact: statsData.potentialImpact || '₹1.18Cr',
+          avgConfidence: statsData.avgConfidence || 88,
+          implemented: statsData.implemented || 45,
+        });
+        setError(null);
+      } catch (err) {
+        console.error('Failed to fetch recommendations:', err);
+        setError(err.message);
+        // Keep component functional with fallback - recommendations will be empty but UI stays intact
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
@@ -69,10 +67,10 @@ const Recommendations = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
-          { label: 'Total Recommendations', value: '24', icon: Lightbulb, trend: '+3 this week', color: '#6432E6' },
-          { label: 'Potential Revenue Impact', value: '+$142k', icon: DollarSign, trend: 'Annualized', color: '#10b981' },
-          { label: 'Avg Confidence Score', value: '88%', icon: Activity, trend: 'High Accuracy', color: '#3b82f6' },
-          { label: 'Implemented', value: '45%', icon: CheckCircle2, trend: '+12% vs last mo', color: '#f59e0b' }
+          { label: 'Total Recommendations', value: stats.totalRecommendations, icon: Lightbulb, trend: '+3 this week', color: '#6432E6' },
+          { label: 'Potential Revenue Impact', value: stats.potentialImpact, icon: IndianRupee, trend: 'Annualized', color: '#10b981' },
+          { label: 'Avg Confidence Score', value: `${stats.avgConfidence}%`, icon: Activity, trend: 'High Accuracy', color: '#3b82f6' },
+          { label: 'Implemented', value: `${stats.implemented}%`, icon: CheckCircle2, trend: '+12% vs last mo', color: '#f59e0b' }
         ].map((stat, i) => (
           <div key={i} className="bg-[#0A0A12] border border-white/5 rounded-2xl p-5 shadow-xl relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -96,7 +94,20 @@ const Recommendations = () => {
       </div>
 
       <div className="space-y-5">
-        {recommendations.map((rec) => (
+        {loading ? (
+          <div className="text-center py-12">
+            <p className="text-gray-400">Loading recommendations...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-red-400">Error loading recommendations: {error}</p>
+          </div>
+        ) : recommendations.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-400">No recommendations available at this time.</p>
+          </div>
+        ) : (
+          recommendations.map((rec) => (
           <div key={rec.id} className="group bg-[#0A0A12] border border-white/5 hover:border-white/10 rounded-2xl p-6 shadow-xl transition-all hover:bg-white/[0.02]">
             <div className="flex flex-col xl:flex-row gap-6">
               
@@ -175,7 +186,8 @@ const Recommendations = () => {
 
             </div>
           </div>
-        ))}
+        ))
+        )}
       </div>
     </div>
   );

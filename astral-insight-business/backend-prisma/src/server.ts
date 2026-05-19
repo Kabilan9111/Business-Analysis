@@ -34,7 +34,30 @@ const httpServer = http.createServer(app);
 
 app.use(helmet());
 
-// Rate limiting
+// CORS - Apply BEFORE rate limiting to handle preflight requests
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        'http://localhost:5173',
+        'http://localhost:5174',
+        'http://localhost:5175',
+        'http://localhost:5176',
+        process.env.FRONTEND_URL || 'http://localhost:5173'
+      ];
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
+
+// Rate limiting - Apply AFTER CORS
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
@@ -42,16 +65,6 @@ const limiter = rateLimit({
 });
 
 app.use('/api/', limiter);
-
-// CORS
-app.use(
-  cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5174',
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  })
-);
 
 // ============================================================================
 // BODY PARSER MIDDLEWARE

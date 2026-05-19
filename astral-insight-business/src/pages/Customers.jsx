@@ -1,38 +1,90 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PageHeader from "../components/PageHeader";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from "recharts";
 import { motion } from "framer-motion";
 import { Users, HeartPulse, Target, UserCheck, UserX, UserMinus, ShieldAlert, BadgeDollarSign, MapPin, Search, Filter, MoreHorizontal, Activity, ArrowUpRight, CheckCircle2, AlertCircle } from "lucide-react";
 
-// Mock Data
-const healthData = [
-  { subject: 'Engagement', A: 120, fullMark: 150 },
-  { subject: 'Adoption', A: 98, fullMark: 150 },
-  { subject: 'Support', A: 86, fullMark: 150 },
-  { subject: 'Revenue', A: 99, fullMark: 150 },
-  { subject: 'Advocacy', A: 85, fullMark: 150 },
-  { subject: 'Usage', A: 65, fullMark: 150 },
-];
-
-const ltvData = [
-  { month: 'Jan', ltv: 1200 },
-  { month: 'Feb', ltv: 1350 },
-  { month: 'Mar', ltv: 1400 },
-  { month: 'Apr', ltv: 1800 },
-  { month: 'May', ltv: 2100 },
-  { month: 'Jun', ltv: 2450 },
-];
-
-const customersList = [
-  { id: "CUS-901", name: "Stark Industries", tier: "Enterprise", status: "Healthy", health: 92, ltv: "$145,000", risk: "Low", lastActive: "10 mins ago", avatar: "SI" },
-  { id: "CUS-842", name: "Wayne Enterprises", tier: "Enterprise", status: "At Risk", health: 45, ltv: "$98,000", risk: "High", lastActive: "2 days ago", avatar: "WE" },
-  { id: "CUS-773", name: "Oscorp Inc", tier: "Pro", status: "Healthy", health: 88, ltv: "$42,000", risk: "Low", lastActive: "1 hour ago", avatar: "OI" },
-  { id: "CUS-612", name: "Acme Corp", tier: "Basic", status: "Churning", health: 12, ltv: "$4,500", risk: "Critical", lastActive: "14 days ago", avatar: "AC" },
-  { id: "CUS-509", name: "Cyberdyne", tier: "Enterprise", status: "Warning", health: 65, ltv: "$112,000", risk: "Medium", lastActive: "5 hours ago", avatar: "CD" },
-];
+const API_BASE = 'http://localhost:3001/api';
 
 const Customers = () => {
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  
+  // Data state
+  const [customers, setCustomers] = useState([]);
+  const [totalCustomers, setTotalCustomers] = useState(0);
+  const [powerUsers, setPowerUsers] = useState(0);
+  const [highChurnRisk, setHighChurnRisk] = useState(0);
+  const [upsellPotential, setUpsellPotential] = useState("$0");
+  const [globalHealth, setGlobalHealth] = useState(84);
+  const [healthData, setHealthData] = useState([]);
+  const [ltvData, setLtvData] = useState([]);
+  const [recommendations, setRecommendations] = useState([]);
+
+  // Fetch all customer data on component mount and when page/search changes
+  useEffect(() => {
+    const fetchCustomerData = async () => {
+      try {
+        setLoading(true);
+        const [
+          customersRes,
+          metricsRes,
+          healthRes,
+          ltvRes,
+          recsRes
+        ] = await Promise.all([
+          fetch(`${API_BASE}/customers?page=${page}&limit=10${search ? `&search=${search}` : ''}`),
+          fetch(`${API_BASE}/customers/metrics`),
+          fetch(`${API_BASE}/customers/global-health`),
+          fetch(`${API_BASE}/customers/ltv-trend?months=6`),
+          fetch(`${API_BASE}/customers/recommendations`)
+        ]);
+
+        const [customersData, metricsData, healthData, ltvData, recsData] = await Promise.all([
+          customersRes.json(),
+          metricsRes.json(),
+          healthRes.json(),
+          ltvRes.json(),
+          recsRes.json()
+        ]);
+
+        // Update customers table
+        setCustomers(customersData.data?.customers || []);
+        setTotalCustomers(customersData.data?.total || 0);
+
+        // Update metrics
+        const metrics = metricsData.data || {};
+        setPowerUsers(metrics.powerUsers || 0);
+        setHighChurnRisk(metrics.highChurnRisk || 0);
+        setUpsellPotential(metrics.upsellPotentialRevenue || "$0");
+
+        // Update health score and radar data
+        const health = healthData.data || {};
+        setGlobalHealth(health.globalHealthScore || 84);
+        setHealthData([
+          { subject: 'Engagement', A: Math.round(health.engagement * 1.5), fullMark: 150 },
+          { subject: 'Adoption', A: Math.round(health.adoption * 1.5), fullMark: 150 },
+          { subject: 'Support', A: Math.round(health.support * 1.5), fullMark: 150 },
+          { subject: 'Revenue', A: Math.round(health.revenue * 1.5), fullMark: 150 },
+          { subject: 'Advocacy', A: Math.round(health.advocacy * 1.5), fullMark: 150 },
+          { subject: 'Usage', A: Math.round(health.usage * 1.5), fullMark: 150 }
+        ]);
+
+        // Update LTV data
+        setLtvData(ltvData.data || []);
+
+        // Update recommendations
+        setRecommendations(recsData.data || []);
+      } catch (error) {
+        console.error('Failed to fetch customer data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCustomerData();
+  }, [page, search]);
 
   return (
     <div className="space-y-6 pb-20">
@@ -56,35 +108,33 @@ const Customers = () => {
          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }} className="bg-gradient-to-br from-[#0A0A12] to-[#0D0D1A] border border-emerald-500/30 rounded-xl p-5 shadow-lg relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-10"><UserCheck className="w-16 h-16 text-emerald-400" /></div>
             <div className="text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Power Users</div>
-            <div className="text-3xl font-black text-white mb-1">3,492</div>
+            <div className="text-3xl font-black text-white mb-1">{powerUsers.toLocaleString()}</div>
             <div className="text-xs text-gray-400">High engagement, low churn risk</div>
          </motion.div>
          
          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="bg-gradient-to-br from-[#0A0A12] to-[#0D0D1A] border border-amber-500/30 rounded-xl p-5 shadow-lg relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-10"><UserMinus className="w-16 h-16 text-amber-400" /></div>
             <div className="text-amber-400 text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> High Churn Risk</div>
-            <div className="text-3xl font-black text-white mb-1">428</div>
+            <div className="text-3xl font-black text-white mb-1">{highChurnRisk.toLocaleString()}</div>
             <div className="text-xs text-gray-400">AI predicts churn within 30 days</div>
          </motion.div>
 
          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }} className="bg-gradient-to-br from-[#0A0A12] to-[#0D0D1A] border border-[#6432E6]/30 rounded-xl p-5 shadow-lg relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-10"><Target className="w-16 h-16 text-[#6432E6]" /></div>
             <div className="text-[#c084fc] text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1"><ArrowUpRight className="w-3 h-3" /> Upsell Potential</div>
-            <div className="text-3xl font-black text-white mb-1">$2.4M</div>
+            <div className="text-3xl font-black text-white mb-1">₹{upsellPotential.replace('$', '').replace(/,/g, '')}</div>
             <div className="text-xs text-gray-400">Expansion ARR identified by AI</div>
          </motion.div>
 
          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }} className="bg-[#0A0A12] border border-white/5 rounded-xl p-5 shadow-lg">
             <div className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">AI Recommendations</div>
             <div className="space-y-3">
-               <div className="flex items-start gap-2 text-xs">
-                 <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 shrink-0"></div>
-                 <span className="text-gray-300">Schedule check-in with <span className="text-white font-medium">Wayne Enterprises</span>. Risk score increased by 15%.</span>
-               </div>
-               <div className="flex items-start gap-2 text-xs">
-                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0"></div>
-                 <span className="text-gray-300">Offer Pro upgrade to <span className="text-white font-medium">Oscorp Inc</span>. Usage limits reached 3 times.</span>
-               </div>
+               {recommendations.slice(0, 2).map((rec, i) => (
+                 <div key={i} className="flex items-start gap-2 text-xs">
+                   <div className={`w-1.5 h-1.5 rounded-full ${rec.type === 'warning' ? 'bg-amber-400' : 'bg-emerald-400'} mt-1.5 shrink-0`}></div>
+                   <span className="text-gray-300" dangerouslySetInnerHTML={{ __html: rec.text }}></span>
+                 </div>
+               ))}
             </div>
          </motion.div>
       </div>
@@ -95,7 +145,7 @@ const Customers = () => {
          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="bg-[#0A0A12] border border-white/5 rounded-xl p-6 shadow-lg flex flex-col items-center">
             <div className="w-full flex items-center justify-between mb-2">
                <h3 className="text-base font-semibold text-white tracking-tight flex items-center gap-2"><HeartPulse className="w-4 h-4 text-rose-400" /> Global Health Score</h3>
-               <span className="text-2xl font-black text-emerald-400">84/100</span>
+               <span className="text-2xl font-black text-emerald-400">{globalHealth}/100</span>
             </div>
             <p className="w-full text-xs text-gray-400 mb-4">Aggregate scoring across all active accounts.</p>
             <div className="flex-1 w-full h-[280px]">
@@ -120,7 +170,7 @@ const Customers = () => {
                </div>
                <div className="text-right">
                   <div className="text-xs text-gray-400 uppercase tracking-wider mb-1">Est. Average LTV</div>
-                  <div className="text-2xl font-bold text-white">$2,450</div>
+                  <div className="text-2xl font-bold text-white">₹{ltvData.length > 0 ? ltvData[ltvData.length - 1].ltv.toLocaleString() : '0'}</div>
                </div>
             </div>
             <div className="flex-1 w-full min-h-[220px]">
@@ -134,7 +184,7 @@ const Customers = () => {
                      </defs>
                      <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0a" vertical={false} />
                      <XAxis dataKey="month" stroke="#ffffff55" tickLine={false} axisLine={false} dy={10} fontSize={11} />
-                     <YAxis stroke="#ffffff55" tickLine={false} axisLine={false} fontSize={11} tickFormatter={(val) => `$${val}`} />
+                     <YAxis stroke="#ffffff55" tickLine={false} axisLine={false} fontSize={11} tickFormatter={(val) => `₹${val}`} />
                      <Tooltip contentStyle={{ backgroundColor: "#0A0A12", borderColor: "#333", borderRadius: "8px", fontSize: "12px" }} />
                      <Area type="monotone" dataKey="ltv" stroke="#10B981" strokeWidth={3} fillOpacity={1} fill="url(#ltvColor)" />
                   </AreaChart>
@@ -172,7 +222,7 @@ const Customers = () => {
                   </tr>
                </thead>
                <tbody className="text-sm">
-                  {customersList.map((customer, i) => (
+                  {customers.map((customer, i) => (
                      <tr key={i} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group cursor-pointer">
                         <td className="py-4 px-6 flex items-center gap-3">
                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold border ${customer.health > 80 ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : customer.health < 40 ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'}`}>
@@ -194,7 +244,7 @@ const Customers = () => {
                               <span className="text-xs font-bold text-white">{customer.health}</span>
                            </div>
                         </td>
-                        <td className="py-4 px-6 text-white font-medium font-mono text-xs">{customer.ltv}</td>
+                        <td className="py-4 px-6 text-white font-medium font-mono text-xs">₹{customer.ltv.replace('$', '')}</td>
                         <td className="py-4 px-6">
                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded border text-[11px] font-bold uppercase tracking-wider ${
                               customer.risk === 'Low' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
@@ -206,7 +256,7 @@ const Customers = () => {
                            </span>
                         </td>
                         <td className="py-4 px-6 text-xs text-gray-400 flex items-center gap-1.5 mt-1.5">
-                           <Activity className={`w-3 h-3 ${customer.lastActive.includes('days') ? 'text-gray-600' : 'text-emerald-400'}`} /> {customer.lastActive}
+                           <Activity className={`w-3 h-3 ${customer.lastActive.includes('day') ? 'text-gray-600' : 'text-emerald-400'}`} /> {customer.lastActive}
                         </td>
                         <td className="py-4 px-6 text-right">
                            <button className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
@@ -219,12 +269,33 @@ const Customers = () => {
             </table>
          </div>
          <div className="p-4 border-t border-white/5 bg-black/20 flex justify-between items-center text-xs text-gray-500">
-            <span>Showing 1-5 of 12,450 records</span>
+            <span>Showing {((page - 1) * 10) + 1}-{Math.min(page * 10, totalCustomers)} of {totalCustomers.toLocaleString()} records</span>
             <div className="flex gap-1">
-               <button className="px-3 py-1 border border-white/10 rounded hover:bg-white/5 disabled:opacity-50" disabled>Prev</button>
-               <button className="px-3 py-1 border border-white/10 rounded bg-white/5 text-white">1</button>
-               <button className="px-3 py-1 border border-white/10 rounded hover:bg-white/5">2</button>
-               <button className="px-3 py-1 border border-white/10 rounded hover:bg-white/5">Next</button>
+               <button 
+                  onClick={() => setPage(Math.max(1, page - 1))}
+                  className="px-3 py-1 border border-white/10 rounded hover:bg-white/5 disabled:opacity-50" 
+                  disabled={page === 1}
+               >
+                  Prev
+               </button>
+               <button 
+                  onClick={() => setPage(page)}
+                  className="px-3 py-1 border border-white/10 rounded bg-white/5 text-white"
+               >
+                  {page}
+               </button>
+               <button 
+                  onClick={() => setPage(page + 1)}
+                  className="px-3 py-1 border border-white/10 rounded hover:bg-white/5"
+               >
+                  {page + 1}
+               </button>
+               <button 
+                  onClick={() => setPage(page + 1)}
+                  className="px-3 py-1 border border-white/10 rounded hover:bg-white/5"
+               >
+                  Next
+               </button>
             </div>
          </div>
       </motion.div>

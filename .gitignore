@@ -1,0 +1,7 @@
+
+# Secrets and credentials
+service-account.json*
+*.env.local
+*.pem
+keys/
+secrets/

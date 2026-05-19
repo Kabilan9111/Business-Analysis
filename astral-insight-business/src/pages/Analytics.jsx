@@ -4,37 +4,138 @@ import { PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tool
 import { motion, AnimatePresence } from "framer-motion";
 import { Users, Activity, Eye, Zap, AlertTriangle, Lightbulb, Info, AlertOctagon, TrendingUp, TrendingDown, RefreshCw, Filter, PlayCircle, ShieldAlert, ArrowRight, MousePointer2 } from "lucide-react";
 
-// Mock Data
-const liveTrafficData = Array.from({ length: 20 }).map((_, i) => ({ time: `-${20-i}m`, users: Math.floor(Math.random() * 500) + 200 }));
-const funnelData = [
-  { step: "Landing Page", users: 14500, dropoff: 0 },
-  { step: "Product View", users: 8900, dropoff: 38 },
-  { step: "Add to Cart", users: 3400, dropoff: 61 },
-  { step: "Checkout", users: 2100, dropoff: 38 },
-  { step: "Purchase", users: 1250, dropoff: 40 }
-];
-const cohortData = [
-  { month: "Jan", "M1": 100, "M2": 45, "M3": 35, "M4": 28, "M5": 25, "M6": 22 },
-  { month: "Feb", "M1": 100, "M2": 48, "M3": 38, "M4": 30, "M5": 26, "M6": 0 },
-  { month: "Mar", "M1": 100, "M2": 52, "M3": 42, "M4": 35, "M5": 0, "M6": 0 },
-];
-
-const insights = [
-  { id: 1, type: "critical", title: "Checkout Drop-off Spike", desc: "40% increase in abandonment at payment step detected in the last 2 hours. AI suspects a payment gateway timeout issue.", icon: AlertOctagon, color: "text-rose-500", bg: "bg-rose-500/10", border: "border-rose-500/20" },
-  { id: 2, type: "warning", title: "Organic Traffic Dip", desc: "Search traffic from EU regions is down by 12% compared to the 7-day moving average.", icon: AlertTriangle, color: "text-amber-500", bg: "bg-amber-500/10", border: "border-amber-500/20" },
-  { id: 3, type: "opportunity", title: "High Conversions via Email", desc: "The 'Winter Promo' email campaign is converting at 18.5%. AI recommends increasing ad spend for this cohort.", icon: Lightbulb, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
-  { id: 4, type: "info", title: "New User Cohort Active", desc: "Users acquired via TikTok ads are spending 3x more time on Product pages.", icon: Info, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" }
-];
+const API_BASE = 'http://localhost:3001/api';
 
 const Analytics = () => {
-  const [viewMode, setViewMode] = useState("analyst"); // executive, analyst, operational
+  const [viewMode, setViewMode] = useState("analyst");
+  const [loading, setLoading] = useState(true);
+  
+  // KPI data
+  const [kpis, setKpis] = useState([]);
+  
+  // Live data
   const [liveUsers, setLiveUsers] = useState(1243);
+  const [recentIncrease, setRecentIncrease] = useState(142);
+  const [liveTrafficData, setLiveTrafficData] = useState([]);
+  
+  // Funnel data
+  const [funnelData, setFunnelData] = useState([]);
+  
+  // Insights data
+  const [insights, setInsights] = useState([]);
+  
+  // Friction data
+  const [frictionData, setFrictionData] = useState([]);
+  
+  // Cohort data
+  const [cohortData, setCohortData] = useState([]);
+  
+  // Prediction data
+  const [predictionData, setPredictionData] = useState([]);
 
-  // Simulate real-time data
+  // Icon map for insights
+  const getInsightIcon = (iconName) => {
+    const iconMap = {
+      'AlertOctagon': AlertOctagon,
+      'AlertTriangle': AlertTriangle,
+      'Lightbulb': Lightbulb,
+      'Info': Info
+    };
+    return iconMap[iconName] || Info;
+  };
+
+  // Fetch all analytics data
   useEffect(() => {
+    const fetchAnalyticsData = async () => {
+      try {
+        setLoading(true);
+        const [
+          kpisRes,
+          liveRes,
+          funnelRes,
+          insightsRes,
+          frictionRes,
+          cohortsRes,
+          predictionRes
+        ] = await Promise.all([
+          fetch(`${API_BASE}/analytics/kpis`),
+          fetch(`${API_BASE}/analytics/live-visitors`),
+          fetch(`${API_BASE}/analytics/funnel`),
+          fetch(`${API_BASE}/analytics/insights`),
+          fetch(`${API_BASE}/analytics/friction`),
+          fetch(`${API_BASE}/analytics/retention-cohorts`),
+          fetch(`${API_BASE}/analytics/traffic-prediction`)
+        ]);
+
+        const [kpisData, liveData, funnelResData, insightsData, frictionResData, cohortsData, predictionResData] = await Promise.all([
+          kpisRes.json(),
+          liveRes.json(),
+          funnelRes.json(),
+          insightsRes.json(),
+          frictionRes.json(),
+          cohortsRes.json(),
+          predictionRes.json()
+        ]);
+
+        // Update KPIs
+        if (kpisData.data) {
+          const kpiArray = [
+            { label: "Bounce Rate", value: kpisData.data.bounceRate, change: "-2.1%", positive: true },
+            { label: "Avg Session", value: kpisData.data.avgSession, change: "+14s", positive: true },
+            { label: "Conv. Rate", value: kpisData.data.conversionRate, change: "+0.5%", positive: true },
+            { label: "CAC", value: kpisData.data.cac, change: "-₹4.20", positive: true },
+            { label: "ROAS", value: kpisData.data.roas, change: "+0.4x", positive: true },
+            { label: "CTR", value: kpisData.data.ctr, change: "-0.8%", positive: false },
+            { label: "Rev / Visitor", value: kpisData.data.revenuePerVisitor, change: "+₹1.10", positive: true },
+            { label: "Returning %", value: kpisData.data.returningPercentage, change: "+5%", positive: true }
+          ];
+          setKpis(kpiArray);
+        }
+
+        // Update live visitors
+        if (liveData.data) {
+          setLiveUsers(liveData.data.activeUsers || 1243);
+          setRecentIncrease(liveData.data.recentIncrease || 142);
+          setLiveTrafficData(liveData.data.chartData || []);
+        }
+
+        // Update funnel
+        setFunnelData(funnelResData.data || []);
+
+        // Update insights
+        setInsights(insightsData.data || []);
+
+        // Update friction
+        setFrictionData(frictionResData.data || []);
+
+        // Update cohorts
+        setCohortData(cohortsData.data || []);
+
+        // Update prediction
+        setPredictionData(predictionResData.data || []);
+      } catch (error) {
+        console.error('Failed to fetch analytics data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnalyticsData();
+
+    // Refresh live data every 5 seconds
     const interval = setInterval(() => {
-      setLiveUsers(prev => prev + Math.floor(Math.random() * 10) - 4);
-    }, 3000);
+      fetch(`${API_BASE}/analytics/live-visitors`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.data) {
+            setLiveUsers(data.data.activeUsers || liveUsers);
+            setRecentIncrease(data.data.recentIncrease || recentIncrease);
+            setLiveTrafficData(data.data.chartData || []);
+          }
+        })
+        .catch(err => console.error('Failed to refresh live data:', err));
+    }, 5000);
+
     return () => clearInterval(interval);
   }, []);
 
@@ -60,16 +161,7 @@ const Analytics = () => {
 
       {/* Advanced KPI Strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
-        {[
-          { label: "Bounce Rate", value: "32.4%", change: "-2.1%", positive: true },
-          { label: "Avg Session", value: "4m 12s", change: "+14s", positive: true },
-          { label: "Conv. Rate", value: "4.8%", change: "+0.5%", positive: true },
-          { label: "CAC", value: "$42.50", change: "-$4.20", positive: true },
-          { label: "ROAS", value: "3.2x", change: "+0.4x", positive: true },
-          { label: "CTR", value: "6.2%", change: "-0.8%", positive: false },
-          { label: "Rev / Visitor", value: "$12.40", change: "+$1.10", positive: true },
-          { label: "Returning %", value: "48%", change: "+5%", positive: true },
-        ].map((kpi, i) => (
+        {kpis.map((kpi, i) => (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} key={i} className="bg-[#0A0A12] border border-white/5 rounded-xl p-4 shadow-lg hover:border-white/10 transition-colors">
             <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{kpi.label}</div>
             <div className="text-lg font-bold text-white mb-1">{kpi.value}</div>
@@ -103,7 +195,7 @@ const Analytics = () => {
               <div className="text-5xl font-black text-white tracking-tighter">{liveUsers.toLocaleString()}</div>
             </div>
             <div className="flex-1 pb-1">
-              <div className="text-xs text-emerald-400 font-medium">+142 in last 5 mins</div>
+              <div className="text-xs text-emerald-400 font-medium">+{recentIncrease} in last 5 mins</div>
             </div>
           </div>
           <div className="flex-1 w-full min-h-[120px] relative">
@@ -133,23 +225,26 @@ const Analytics = () => {
             </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
-            {insights.map((insight) => (
-              <div key={insight.id} className={`p-4 rounded-xl border ${insight.border} ${insight.bg} flex gap-4 items-start`}>
-                <div className={`p-2 rounded-lg bg-[#0A0A12] shadow-sm ${insight.color}`}>
-                  <insight.icon className="w-5 h-5" />
+            {insights.map((insight) => {
+              const IconComponent = getInsightIcon(insight.icon);
+              return (
+                <div key={insight.id} className={`p-4 rounded-xl border ${insight.border} ${insight.bg} flex gap-4 items-start`}>
+                  <div className={`p-2 rounded-lg bg-[#0A0A12] shadow-sm ${insight.color}`}>
+                    <IconComponent className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-white mb-1">{insight.title}</h4>
+                    <p className="text-xs text-gray-300 leading-relaxed">{insight.desc}</p>
+                    {insight.type === 'critical' && (
+                      <button className="mt-3 text-[10px] uppercase font-bold text-rose-400 bg-rose-500/10 px-2 py-1 rounded border border-rose-500/20 hover:bg-rose-500/20 transition">Investigate Pipeline</button>
+                    )}
+                    {insight.type === 'opportunity' && (
+                      <button className="mt-3 text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 hover:bg-emerald-500/20 transition">Apply Recommendation</button>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-sm font-semibold text-white mb-1">{insight.title}</h4>
-                  <p className="text-xs text-gray-300 leading-relaxed">{insight.desc}</p>
-                  {insight.type === 'critical' && (
-                    <button className="mt-3 text-[10px] uppercase font-bold text-rose-400 bg-rose-500/10 px-2 py-1 rounded border border-rose-500/20 hover:bg-rose-500/20 transition">Investigate Pipeline</button>
-                  )}
-                  {insight.type === 'opportunity' && (
-                    <button className="mt-3 text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 hover:bg-emerald-500/20 transition">Apply Recommendation</button>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </motion.div>
       </div>
@@ -170,7 +265,7 @@ const Analytics = () => {
            
            <div className="flex flex-col gap-2 relative">
               {funnelData.map((step, index) => {
-                 const maxUsers = funnelData[0].users;
+                 const maxUsers = funnelData[0]?.users || 1;
                  const widthPct = (step.users / maxUsers) * 100;
                  return (
                    <div key={index} className="relative w-full h-16 flex items-center group">
@@ -198,14 +293,10 @@ const Analytics = () => {
         {/* Session Replay & UX Insights */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="bg-[#0A0A12] border border-white/5 rounded-xl p-6 shadow-lg flex flex-col">
             <h3 className="text-base font-semibold text-white tracking-tight mb-4">UX Friction & Replays</h3>
-            <p className="text-xs text-gray-400 mb-6">AI detected 3 major frustration points today.</p>
+            <p className="text-xs text-gray-400 mb-6">AI detected {frictionData.length} major frustration points today.</p>
             
             <div className="space-y-4 flex-1">
-               {[
-                 { id: "R-893", issue: "Rage Clicks on 'Submit' button", page: "/checkout", users: 142, severity: "high" },
-                 { id: "R-102", issue: "Dead Scroll (No engagement)", page: "/pricing", users: 89, severity: "medium" },
-                 { id: "R-441", issue: "Form Abandonment (Field 3)", page: "/register", users: 312, severity: "high" }
-               ].map((replay, i) => (
+               {frictionData.map((replay, i) => (
                  <div key={i} className="bg-black/40 border border-white/5 rounded-lg p-3 hover:border-white/10 transition-colors group cursor-pointer">
                     <div className="flex justify-between items-start mb-2">
                        <div className="flex items-center gap-2">
@@ -240,15 +331,7 @@ const Analytics = () => {
             <p className="text-xs text-gray-400 mb-6">AI models project a 15% increase next week based on current marketing spend.</p>
             <div className="h-[250px] w-full">
                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={[
-                    { name: 'Mon', actual: 4000, predicted: 4100 },
-                    { name: 'Tue', actual: 3000, predicted: 3200 },
-                    { name: 'Wed', actual: 5000, predicted: 4800 },
-                    { name: 'Thu', actual: 2780, predicted: 3000 },
-                    { name: 'Fri', actual: 1890, predicted: 2200 },
-                    { name: 'Sat', actual: null, predicted: 4500, isFuture: true },
-                    { name: 'Sun', actual: null, predicted: 5100, isFuture: true },
-                  ]}>
+                  <ComposedChart data={predictionData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0a" vertical={false} />
                     <XAxis dataKey="name" stroke="#ffffff55" tickLine={false} axisLine={false} dy={10} fontSize={10} />
                     <YAxis stroke="#ffffff55" tickLine={false} axisLine={false} fontSize={10} />

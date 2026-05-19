@@ -113,6 +113,18 @@ export const forecastAPI = {
 };
 
 // ============================================================================
+// RECOMMENDATIONS API (AI-powered business recommendations)
+// ============================================================================
+
+export const recommendationsAPI = {
+  /** Get AI-powered recommendations from PostgreSQL + Stripe + Shopify + GA */
+  getRecommendations: () => apiFetch('/recommendations'),
+
+  /** Get recommendation stats for page header */
+  getStats: () => apiFetch('/recommendations/stats'),
+};
+
+// ============================================================================
 // GENERIC HOOK HELPER — Returns { data, loading, error, refetch }
 // ============================================================================
 
